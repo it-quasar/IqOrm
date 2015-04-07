@@ -7,6 +7,7 @@
 *.la
 *.lai
 *.so
+*.so.*
 *.dll
 *.dylib
 
@@ -42,4 +43,4 @@ CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 *_automoc.cpp
-
+install_manifest.txt
