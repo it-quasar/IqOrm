@@ -23,6 +23,7 @@
 #include <QAbstractTableModel>
 #include <QPointer>
 #include <QSet>
+#include <QMetaMethod>
 #include "iqorm_global.h"
 #include "iqormfilter.h"
 
@@ -111,6 +112,11 @@ public:
 
     IqOrmAbstractDataSource *lastDataSource() const;
 
+    void clear();
+
+    bool remove(IqOrmObject* object);
+
+    virtual bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) Q_DECL_OVERRIDE;
 
     virtual QVariant headerData(int section,
                                 Qt::Orientation orientation,
@@ -154,6 +160,9 @@ public:
     IqOrmAbstractFilter *filters() const;
     void setFilters(IqOrmAbstractFilter *filters);
 
+    bool childChangeMonitoring() const;
+    void setChildChangeMonitoring(bool childChangeMonitoring);
+
 signals:
     void filtersChanged();
     void countChanged();
@@ -163,26 +172,34 @@ private slots:
 
 private:
     friend class IqOrmPrivate::IqOrmModelPrivateAccessor;
-    void append(IqOrmObject* object);
 
-    void insert(int row, IqOrmObject* object);
+    void insertObjects(qint64 row, QList<IqOrmObject *> objects);
 
-    void remove(IqOrmObject* object);
-
-    void clear();
+    void enableChildMonitoring(IqOrmObject *child);
+    void disableChildMonitoring(IqOrmObject *child);
 
 private:
-    int m_indexOfOnObjectChangedMethod;
+    class IqOrmModelItem
+    {
+    public:
+        explicit IqOrmModelItem();
+        QHash<QString, QVariant> rawData;
+        IqOrmObject *object;
+    };
+
+    QMetaMethod m_onObjectChangedMethod;
     IqOrmAbstractFilter *m_filters;
     IqOrmError *m_lastError;
     QPointer<IqOrmAbstractDataSource> m_lastDataSource;
 
     QList<IqOrmObject *> m_items;
+
     QStringList m_visibleProperties;
     QSet<QString> m_editableProperties;
     //1 - имя свойства, 2 - его заголовок
     QHash<QString, QString> m_propertyHeaderTitles;
     QHash<int, QString> m_signalIndexProperty;
+    bool m_childChangeMonitoring;
 };
 
 #endif // IQORMBASEMODEL_H

@@ -32,14 +32,20 @@
 #include <QMetaProperty>
 #include <QQuickItem>
 
+IqOrmBaseModel::IqOrmModelItem::IqOrmModelItem() :
+    object(Q_NULLPTR)
+{
+}
+
 IqOrmBaseModel::IqOrmBaseModel(QObject *parent) :
     QAbstractTableModel(parent),
-    m_indexOfOnObjectChangedMethod(-1),
     m_filters(NULL),
     m_lastError(new IqOrmError(this)),
-    m_lastDataSource(Q_NULLPTR)
+    m_lastDataSource(Q_NULLPTR),
+    m_childChangeMonitoring(false)
 {
-    m_indexOfOnObjectChangedMethod = this->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("onObjectChanged()").constData());
+    int indexOfOnObjectChangedMethod = this->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("onObjectChanged()").constData());
+    m_onObjectChangedMethod = metaObject()->method(indexOfOnObjectChangedMethod);
 }
 
 IqOrmBaseModel::~IqOrmBaseModel()
@@ -180,6 +186,9 @@ bool IqOrmBaseModel::load(qint64 limit, qint64 offset, IqOrmBaseModel::OrderBy o
         lastError()->setText(result.error());
     }
 
+    if (!m_childChangeMonitoring)
+        emit dataChanged(index(0,0), index(rowCount() - 1, columnCount() - 1));
+
     return result;
 }
 
@@ -300,34 +309,46 @@ void IqOrmBaseModel::clear()
     emit countChanged();
 }
 
-void IqOrmBaseModel::append(IqOrmObject *object)
-{
-    insert(rowCount(), object);
-}
 
-void IqOrmBaseModel::insert(int row, IqOrmObject *object)
+void IqOrmBaseModel::insertObjects(qint64 row, QList<IqOrmObject *> objects)
 {
-    if (m_items.contains(object))
-        return;
-
     int rowToInsert = row < 0?0:row;
 
     if (rowToInsert > rowCount())
         rowToInsert = rowCount();
 
-    emit beginInsertRows(QModelIndex(), rowToInsert, rowToInsert);
+    emit beginInsertRows(QModelIndex(), rowToInsert, rowToInsert + objects.count() - 1);
 
-    m_items.insert(rowToInsert, object);
+    int j = -1;
+    for (int i = rowToInsert; i < rowToInsert + objects.count(); ++i) {
+        ++j;
+        IqOrmObject *object = objects[j];
+        Q_CHECK_PTR(object);
 
-    QObject *qobject = dynamic_cast<QObject *>(object);
+        m_items.insert(i, object);
+
+        QObject *qobject = dynamic_cast<QObject *>(object);
+        Q_CHECK_PTR(qobject);
+        qobject->setParent(this);
+
+        Q_CHECK_PTR(childsOrmMetaModel());
+        Q_ASSERT_X(qobject->metaObject()->className() == childsOrmMetaModel()->targetStaticMetaObject()->className(),
+                   Q_FUNC_INFO,
+                   "Try to insert object with diferent type.");
+
+        if (m_childChangeMonitoring) {
+            enableChildMonitoring(object);
+        }
+    }
+
+    emit endInsertRows();
+    emit countChanged();
+}
+
+void IqOrmBaseModel::enableChildMonitoring(IqOrmObject *child)
+{
+    QObject *qobject = dynamic_cast<QObject *>(child);
     Q_CHECK_PTR(qobject);
-    qobject->setParent(this);
-
-    Q_CHECK_PTR(childsOrmMetaModel());
-    Q_ASSERT_X(qobject->metaObject()->className() == childsOrmMetaModel()->targetStaticMetaObject()->className(),
-               Q_FUNC_INFO,
-               "Try to insert object with diferent type.");
-
     foreach (const IqOrmPropertyDescription *propetyDescription, childsOrmMetaModel()->propertyDescriptions()) {
         QMetaMethod notifiSignal = propetyDescription->targetStaticMetaPropery().notifySignal();
         if (!notifiSignal.isValid())
@@ -336,33 +357,83 @@ void IqOrmBaseModel::insert(int row, IqOrmObject *object)
         connect(qobject,
                 notifiSignal,
                 this,
-                metaObject()->method(m_indexOfOnObjectChangedMethod));
+                m_onObjectChangedMethod);
     }
-
-    emit endInsertRows();
-    emit countChanged();
 }
 
-void IqOrmBaseModel::remove(IqOrmObject *object)
+void IqOrmBaseModel::disableChildMonitoring(IqOrmObject *child)
+{
+    QObject *qobject = dynamic_cast<QObject *>(child);
+    Q_CHECK_PTR(qobject);
+    disconnect(qobject, 0, this, 0);
+}
+
+bool IqOrmBaseModel::childChangeMonitoring() const
+{
+    return m_childChangeMonitoring;
+}
+
+void IqOrmBaseModel::setChildChangeMonitoring(bool childChangeMonitoring)
+{
+    m_childChangeMonitoring = childChangeMonitoring;
+    if (m_childChangeMonitoring) {
+        foreach (IqOrmObject *object, m_items) {
+            enableChildMonitoring(object);
+        }
+    } else {
+        foreach (IqOrmObject *object, m_items) {
+            disableChildMonitoring(object);
+        }
+    }
+}
+
+
+bool IqOrmBaseModel::remove(IqOrmObject *object)
 {
     if (!m_items.contains(object))
-        return;
+        return false;
 
-    qint64 oldCount = count();
+    disableChildMonitoring(object);
 
     emit beginRemoveRows(QModelIndex(), m_items.indexOf(object), m_items.indexOf(object));
 
     Q_ASSERT(m_items.removeOne(object));
     QObject *qobject = dynamic_cast<QObject *>(object);
     Q_CHECK_PTR(qobject);
-    disconnect(qobject, 0, this, 0);
     if (qobject->parent() == this)
         qobject->deleteLater();
 
     emit endRemoveRows();
+    emit countChanged();
 
-    if (count() != oldCount)
-        emit countChanged();
+    return true;
+}
+
+bool IqOrmBaseModel::removeRows(int row, int count, const QModelIndex &parent)
+{
+    Q_UNUSED(parent);
+
+    if (row < 0 || row + count > rowCount())
+        return false;
+
+    emit beginRemoveRows(parent, row, row + count - 1);
+
+    for (int i = row + count - 1; i >= row; --i) {
+        IqOrmObject *object = m_items[i];
+        Q_CHECK_PTR(object);
+        disableChildMonitoring(object);
+        QObject *qobject = dynamic_cast<QObject *>(object);
+        Q_CHECK_PTR(qobject);
+        if (qobject->parent() == this)
+            qobject->deleteLater();
+
+        m_items.removeAt(i);
+    }
+
+    emit endRemoveRows();
+    emit countChanged();
+
+    return true;
 }
 
 IqOrmObject *IqOrmBaseModel::take(int row)
@@ -370,6 +441,7 @@ IqOrmObject *IqOrmBaseModel::take(int row)
     Q_ASSERT(row >= 0 && row < count());
     IqOrmObject *object = m_items[row];
     Q_CHECK_PTR(object);
+    disableChildMonitoring(object);
 
     QObject *qobject = dynamic_cast<QObject *>(object);
     Q_CHECK_PTR(qobject);
