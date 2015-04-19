@@ -17,17 +17,32 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#include "iqormabstractobjectsmodeldatasource.h"
-#include "iqormabstractdatasource.h"
-#include "iqormbasemodel.h"
-#include "iqormerror.h"
-#include "iqormobject.h"
+#ifndef IQORMLIB_H
+#error 'iqormlib_impl.h' is not supposed to be included directly. Include 'iqormlib.h' instead.
+#endif
 
-IqOrmAbstractObjectsModelDataSource::IqOrmAbstractObjectsModelDataSource(IqOrmAbstractDataSource *parent) :
-    QObject(parent)
+#include "iqormobjectfactory.h"
+#include "iqormmetamodel.h"
+#include <QMetaType>
+
+template <class T>
+void IqOrmLib::ormModelIninitializator()
 {
+    IqOrmObjectFactory::registerClass<T>();
+    T tempObject;
+    const IqOrmMetaModel *staticMetaModel = T::staticOrmMetaModel();
+    Q_CHECK_PTR(staticMetaModel);
+    IqOrmMetaModel * metaModel = const_cast<IqOrmMetaModel *>(staticMetaModel);
+    metaModel->setTargetStaticMetaObject(&T::staticMetaObject);
+    tempObject.initializeOrmMetaModel(metaModel);
+    Q_ASSERT_X(metaModel->isValid(),
+               Q_FUNC_INFO,
+               QObject::tr("IqOrmModel for class %0 not valid.")
+               .arg(T::staticMetaObject.className()).toLocal8Bit().constData());
 }
 
-IqOrmAbstractObjectsModelDataSource::~IqOrmAbstractObjectsModelDataSource()
+template <class T>
+void IqOrmLib::scheduleOrmModelInitialization()
 {
+    m_ormModelInitializators.append(&ormModelIninitializator<T>);
 }

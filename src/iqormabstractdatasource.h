@@ -25,7 +25,7 @@
 #include "iqormtransactioncontrol.h"
 
 class IqOrmAbstractObjectDataSource;
-class IqOrmAbstractObjectsModelDataSource;
+class IqOrmAbstractModelDataSource;
 
 class IQORMSHARED_EXPORT IqOrmAbstractDataSource : public QObject
 {
@@ -39,7 +39,7 @@ public:
 
     virtual IqOrmAbstractObjectDataSource *objectDataSource() const = 0;
 
-    virtual IqOrmAbstractObjectsModelDataSource *objectsModelDataSource() const = 0;
+    virtual IqOrmAbstractModelDataSource *objectsModelDataSource() const = 0;
 
 protected:
     friend class IqOrmTransactionControl;

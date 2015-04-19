@@ -22,8 +22,8 @@
 
 #include <QSharedData>
 #include "iqormmetamodel.h"
-#include "iqormdirectpropertydescription.h"
 
+#include "iqormdirectpropertydescription.h"
 #include "iqormdirectpropertychanges.h"
 #include "iqormonetoonepropertychanges.h"
 #include "iqorminversedonetoonepropertychanges.h"
@@ -34,6 +34,7 @@
 #include "iqorm_global.h"
 
 class IqOrmAbstractDataSource;
+
 class IQORMSHARED_EXPORT IqOrmDataSourceChanges
 {
 public:
@@ -98,35 +99,6 @@ private:
     QSharedDataPointer<IqOrmDataSourceChangesData> d;
 };
 
-
-
-
-template <class T>
-QSet<T *> IqOrmDataSourceChanges::propertiesChanges() const
-{
-    QSet<T *> result;
-    foreach (IqOrmPropertyChanges *changes, d->propertiesChanges.values()) {
-        T *castChanges = dynamic_cast<T *>(changes);
-        if (castChanges)
-            result << castChanges;
-    }
-    return result;
-}
-
-template <class T>
-T * IqOrmDataSourceChanges::propertyChanges(const IqOrmPropertyDescription *propertyDescription)
-{
-    if (d->propertiesChanges.contains(propertyDescription))
-        return dynamic_cast<T *>(d->propertiesChanges[propertyDescription]);
-
-    T* newChanges = new T();
-    if (true)
-        Q_CHECK_PTR(dynamic_cast<IqOrmPropertyChanges *>(newChanges));
-
-    newChanges->setPropertyDescription(propertyDescription);
-    d->propertiesChanges[propertyDescription] = newChanges;
-
-    return newChanges;
-}
+#include "iqormdatasourcechanges_impl.h"
 
 #endif // IQORMDATASOURCECHANGES_H

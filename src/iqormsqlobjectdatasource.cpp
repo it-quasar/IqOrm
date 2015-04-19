@@ -22,12 +22,16 @@
 #include "iqormpropertydescription.h"
 #include "iqormtransactioncontrol.h"
 
+#include "iqormsqlpropertydescriptionsprocessor.h"
+
 #include "iqormobjectprivateaccessor.h"
 #include "iqormsqljoinoperation.h"
 
 #include "iqormobject.h"
 #include "iqormmetamodel.h"
 #include "iqormerror.h"
+
+#include "iqormdatasourceoperationresult.h"
 
 #include <QSqlQuery>
 #include <QDebug>
@@ -110,7 +114,7 @@ bool IqOrmSqlObjectDataSource::loadObjectFromSQLRecord(IqOrmObject *object,
         }
     }
 
-    IqOrmObjectPrivateAccessor::setObjectId(object, record.value(0).toInt());
+    IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, record.value(0).toInt());
 
     return true;
 }
@@ -268,8 +272,8 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::insertObject(IqOrmObjec
     result.setDataSource(m_sqlDataSource);
 
     Q_CHECK_PTR(object);
-    Q_ASSERT(!IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
-    Q_ASSERT(!IqOrmObjectPrivateAccessor::isObjectSavedToDataSource(object));
+    Q_ASSERT(!IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
+    Q_ASSERT(!IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectSavedToDataSource(object));
     Q_ASSERT(object->objectId() == -1);
 
     const IqOrmMetaModel *ormModel = object->ormMetaModel();
@@ -307,10 +311,10 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::insertObject(IqOrmObjec
     if (!ok)
         return result;
 
-    IqOrmObjectPrivateAccessor::setObjectId(object, query.lastInsertId().toInt());
+    IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, query.lastInsertId().toInt());
 
     if (!m_propertyDescriptionsProcessor->postInsert(object, &result)) {
-        IqOrmObjectPrivateAccessor::setObjectId(object, -1);
+        IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, -1);
         return result;
     }
 
@@ -326,8 +330,8 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::updateObject(IqOrmObjec
     result.setDataSource(m_sqlDataSource);
 
     Q_CHECK_PTR(object);
-    Q_ASSERT(IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
-    Q_ASSERT((IqOrmObjectPrivateAccessor::isObjectSavedToDataSource(object)));
+    Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
+    Q_ASSERT((IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectSavedToDataSource(object)));
     Q_ASSERT(object->objectId() != -1);
 
     Q_ASSERT(!properties.isEmpty());
@@ -386,8 +390,8 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::removeObject(IqOrmObjec
     result.setDataSource(m_sqlDataSource);
 
     Q_CHECK_PTR(object);
-    Q_ASSERT(IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
-    Q_ASSERT(IqOrmObjectPrivateAccessor::isObjectSavedToDataSource(object));
+    Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
+    Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectSavedToDataSource(object));
     Q_ASSERT(object->objectId() != -1);
 
     const IqOrmMetaModel *ormModel = object->ormMetaModel();
@@ -420,7 +424,7 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::removeObject(IqOrmObjec
     if (!m_propertyDescriptionsProcessor->postRemove(object, &result))
         return result;
 
-    IqOrmObjectPrivateAccessor::setObjectId(object, -1);
+    IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, -1);
 
     result.changes(ormModel, object->objectId())->setOperation(IqOrmDataSourceChanges::Remove);
     return result;

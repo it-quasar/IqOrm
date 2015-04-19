@@ -21,12 +21,18 @@
 #define IQORMBASEMODEL_H
 
 #include <QAbstractTableModel>
-#include "iqormfilter.h"
-#include "iqormerror.h"
-#include "iqormabstractobjectsmodeldatasource.h"
-#include "iqormobject.h"
-#include "iqormmetamodel.h"
+#include <QPointer>
+#include <QSet>
 #include "iqorm_global.h"
+#include "iqormfilter.h"
+
+class IqOrmMetaModel;
+class IqOrmObject;
+class IqOrmAbstractDataSource;
+class IqOrmError;
+namespace IqOrmPrivate {
+class IqOrmModelPrivateAccessor;
+}
 
 class IQORMSHARED_EXPORT IqOrmBaseModel : public QAbstractTableModel
 {
@@ -46,9 +52,8 @@ public:
 
     virtual ~IqOrmBaseModel();
 
-    virtual const IqOrmMetaModel * childsOrmModel() const = 0;
+    virtual const IqOrmMetaModel * childsOrmMetaModel() const = 0;
 
-    virtual IqOrmObject * createChildObject() = 0;
 
     Q_INVOKABLE virtual QObject *get(int row) const;
 
@@ -59,7 +64,6 @@ public:
     virtual IqOrmObject *take(int row);
 
     virtual IqOrmObject *take(IqOrmObject *object);
-
 
     void setPropertyEditable(const QString &property,
                              const bool editable = true);
@@ -103,17 +107,7 @@ public:
 
     int rowOf(const IqOrmObject* object) const;
 
-
-    void append(IqOrmObject* object);
-
-    void insert(int row, IqOrmObject* object);
-
-    void remove(IqOrmObject* object);
-
-    void clear();
-
     QList<IqOrmObject *> toObjectList() const;
-
 
     IqOrmAbstractDataSource *lastDataSource() const;
 
@@ -147,6 +141,8 @@ signals:
     void invisibleDataChanged(int row, const QString &property);
 
 protected:
+    virtual IqOrmObject * createChildObject() = 0;
+
     void addPropertySiagnalIndex(const QString& property, int signalIndex);
     static bool processTruncate(const IqOrmMetaModel *childOrmModel,
                                 IqOrmAbstractDataSource *dataSource,
@@ -164,6 +160,16 @@ signals:
 
 private slots:
     void onObjectChanged();
+
+private:
+    friend class IqOrmPrivate::IqOrmModelPrivateAccessor;
+    void append(IqOrmObject* object);
+
+    void insert(int row, IqOrmObject* object);
+
+    void remove(IqOrmObject* object);
+
+    void clear();
 
 private:
     int m_indexOfOnObjectChangedMethod;

@@ -35,13 +35,7 @@ public:
     static IqOrmObject *create(const QString &className, QObject *parent = Q_NULLPTR);
 
     template <class T>
-    static void registerClass()
-    {
-        QString className = T::staticMetaObject.className();
-        if (!m_builders.contains(className)) {
-            m_builders[className] = new IqOrmObjectBulder<T>();
-        }
-    }
+    static void registerClass();
 
 private:
     class IqOrmObjectBaseBulder
@@ -53,13 +47,12 @@ private:
     template <class T>
     class IqOrmObjectBulder : public IqOrmObjectBaseBulder
     {
-        virtual IqOrmObject *build(QObject *parent = Q_NULLPTR) const
-        {
-            return new T(parent);
-        }
+        virtual IqOrmObject *build(QObject *parent = Q_NULLPTR) const Q_DECL_OVERRIDE;
     };
 
     static QHash<QString, IqOrmObjectBaseBulder *> m_builders;
 };
+
+#include "iqormobjecfactory_impl.h"
 
 #endif // IQORMOBJECTFACTORY_H

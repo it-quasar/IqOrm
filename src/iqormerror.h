@@ -24,7 +24,6 @@
 #include <QStringList>
 #include "iqorm_global.h"
 
-
 class IQORMSHARED_EXPORT IqOrmError : public QObject
 {
     Q_OBJECT

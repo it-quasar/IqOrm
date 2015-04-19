@@ -23,15 +23,15 @@
 #include "iqormabstractdatasource.h"
 #include "iqorm_global.h"
 
-class IQORMSHARED_EXPORT IQORMNullDataSource : public IqOrmAbstractDataSource
+class IQORMSHARED_EXPORT IqOrmNullDataSource : public IqOrmAbstractDataSource
 {
     Q_OBJECT
 public:
-    explicit IQORMNullDataSource(QObject *parent = Q_NULLPTR);
+    explicit IqOrmNullDataSource(QObject *parent = Q_NULLPTR);
 
-    virtual IqOrmAbstractObjectDataSource * objectDataSource() const Q_DECL_OVERRIDE {printWarnign(); return NULL;}
+    virtual IqOrmAbstractObjectDataSource *objectDataSource() const Q_DECL_OVERRIDE;
 
-    virtual IqOrmAbstractObjectsModelDataSource * objectsModelDataSource() const Q_DECL_OVERRIDE {printWarnign(); return NULL;}
+    virtual IqOrmAbstractModelDataSource *objectsModelDataSource() const Q_DECL_OVERRIDE;
 
 private:
     void printWarnign() const;

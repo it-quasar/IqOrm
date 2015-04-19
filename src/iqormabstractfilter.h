@@ -23,7 +23,6 @@
 #include <QObject>
 #include "iqorm_global.h"
 
-
 class IQORMSHARED_EXPORT IqOrmAbstractFilter : public QObject
 {
     Q_OBJECT

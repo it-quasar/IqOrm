@@ -176,7 +176,7 @@ protected:
 
 private:
     friend class IqOrmMetaModel;
-    friend class IqOrmObjectPrivateAccessor;
+    friend class IqOrmPrivate::IqOrmObjectPrivateAccessor;
 
     void setObjectId(qint64 objectId);
 

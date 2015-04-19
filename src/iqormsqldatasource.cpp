@@ -21,6 +21,8 @@
 #include "iqormobject.h"
 #include "iqormmetamodel.h"
 #include "iqormpropertydescription.h"
+#include "iqormsqlobjectdatasource.h"
+#include "iqormsqlmodeldatasource.h"
 #include <QMetaProperty>
 #include <QtSql/QSqlDriver>
 #include <QtSql/QSqlQuery>
@@ -33,7 +35,7 @@ IqOrmSqlDataSource::IqOrmSqlDataSource(QObject *parent) :
     m_escapedIdFieldName(""),
     m_sqlDriver(Q_NULLPTR),
     m_objectDataSource(new IqOrmSqlObjectDataSource(this)),
-    m_objectsModelDataSource(new IqOrmSqlObjectsModelDataSource(this)),
+    m_objectsModelDataSource(new IqOrmSqlModelDataSource(this)),
     m_transactionIsOpen(false),
     m_tracerLog(new IqOrmSqlOperationTracerLog(this))
 {
@@ -57,7 +59,7 @@ IqOrmSqlObjectDataSource * IqOrmSqlDataSource::objectDataSource() const
     return m_objectDataSource;
 }
 
-IqOrmSqlObjectsModelDataSource * IqOrmSqlDataSource::objectsModelDataSource() const
+IqOrmSqlModelDataSource * IqOrmSqlDataSource::objectsModelDataSource() const
 {
     return m_objectsModelDataSource;
 }

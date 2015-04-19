@@ -163,7 +163,7 @@ void IqOrmSqlAbstractPropertyDescriptionProcessor::setSqlDataSource(IqOrmSqlData
 
 bool IqOrmSqlAbstractPropertyDescriptionProcessor::propertyWasChanged() const
 {
-    QVariant oldValue = IqOrmObjectPrivateAccessor::sourcePropertyValue(object(), propertyDescription());
+    QVariant oldValue = IqOrmPrivate::IqOrmObjectPrivateAccessor::sourcePropertyValue(object(), propertyDescription());
     return oldValue != propertyValue();
 }
 

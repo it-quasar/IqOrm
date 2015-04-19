@@ -23,7 +23,6 @@
 #include "iqormgroupfilter.h"
 #include "iqorm_global.h"
 
-
 class IQORMSHARED_EXPORT IqOrmAndGroupFilter : public IqOrmGroupFilter
 {
     Q_OBJECT

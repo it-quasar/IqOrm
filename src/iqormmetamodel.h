@@ -1,8 +1,3 @@
-#ifndef IQORMMETAMODEL_H
-#define IQORMMETAMODEL_H
-
-#include <QObject>
-#include "iqorm_global.h"
 /**********************************************************************************
  * Copyright © 2015 Pavel A. Puchkov                                              *
  *                                                                                *
@@ -22,6 +17,13 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
+#ifndef IQORMMETAMODEL_H
+#define IQORMMETAMODEL_H
+
+#include <QObject>
+#include "iqorm_global.h"
+
+#include "iqormdirectpropertydescription.h"
 #include "iqormonetoonepropertydescription.h"
 #include "iqorminversedonetoonepropertydescription.h"
 #include "iqormmanytoonepropertydescription.h"
@@ -118,102 +120,6 @@ private:
     const QObject *m_validationObject;
 };
 
-
-
-template <class T>
-void IqOrmMetaModel::setOneToOne(const QString &property,
-                             const QString &joinColumnName)
-{
-    Q_ASSERT(!property.isEmpty());
-
-    IqOrmOneToOnePropertyDescription<T> *newDescription = new IqOrmOneToOnePropertyDescription<T>(this);
-    newDescription->setPropertyName(property);
-    if (joinColumnName.isEmpty())
-        newDescription->setJoinColumnName(property);
-    else
-        newDescription->setJoinColumnName(joinColumnName);
-
-    if (!addPropertyOrmDescription(newDescription))
-        newDescription->deleteLater();
-}
-
-template <class T>
-void IqOrmMetaModel::setInversedOneToOne(const QString &property,
-                                     const QString &mappedBy)
-{
-    Q_ASSERT(!property.isEmpty());
-    Q_ASSERT(!mappedBy.isEmpty());
-
-    IqOrmInversedOneToOnePropertyDescription<T> *newDescription = new IqOrmInversedOneToOnePropertyDescription<T>(this);
-    newDescription->setPropertyName(property);
-    newDescription->setMappedBy(mappedBy);
-
-    if (!addPropertyOrmDescription(newDescription))
-        newDescription->deleteLater();
-}
-
-
-template <class T>
-void IqOrmMetaModel::setManyToOne(const QString &property,
-                              const QString &joinColumnName)
-{
-    Q_ASSERT(!property.isEmpty());
-
-    IqOrmManyToOnePropertyDescription<T> *newDescription = new IqOrmManyToOnePropertyDescription<T>(this);
-    newDescription->setPropertyName(property);
-    if (joinColumnName.isEmpty())
-        newDescription->setJoinColumnName(property);
-    else
-        newDescription->setJoinColumnName(joinColumnName);
-
-    if (!addPropertyOrmDescription(newDescription))
-        newDescription->deleteLater();
-}
-
-template <class T>
-void IqOrmMetaModel::setOneToMany(const QString &property,
-                              const QString &mappedBy)
-{
-    Q_ASSERT(!property.isEmpty());
-    Q_ASSERT(!mappedBy.isEmpty());
-
-    IqOrmOneToManyPropertyDescription<T> *newDescription = new IqOrmOneToManyPropertyDescription<T>(this);
-    newDescription->setPropertyName(property);
-    newDescription->setMappedBy(mappedBy);
-
-    if (!addPropertyOrmDescription(newDescription))
-        newDescription->deleteLater();
-}
-
-template <class T>
-void IqOrmMetaModel::setManyToMany(const QString &property,
-                               const IqOrmJoinTable &joinTable)
-{
-    Q_ASSERT(!property.isEmpty());
-
-    IqOrmManyToManyPropertyDescription<T> *newDescription = new IqOrmManyToManyPropertyDescription<T>(this);
-    newDescription->setPropertyName(property);
-
-    IqOrmJoinTable* newJoinTable = new IqOrmJoinTable(joinTable, newDescription);
-    newDescription->setJoinTable(newJoinTable);
-
-    if (!addPropertyOrmDescription(newDescription))
-        newDescription->deleteLater();
-}
-
-template <class T>
-void IqOrmMetaModel::setInversedManyToMany(const QString &property,
-                                       const QString &mappedBy)
-{
-    Q_ASSERT(!property.isEmpty());
-    Q_ASSERT(!mappedBy.isEmpty());
-
-    IqOrmInversedManyToManyPropertyDescription<T> *newDescription = new IqOrmInversedManyToManyPropertyDescription<T>(this);
-    newDescription->setPropertyName(property);
-    newDescription->setMappedBy(mappedBy);
-
-    if (!addPropertyOrmDescription(newDescription))
-        newDescription->deleteLater();
-}
+#include "iqormmetamodel_impl.h"
 
 #endif // IQORMMETAMODEL_H

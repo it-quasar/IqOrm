@@ -20,12 +20,24 @@
 #include "iqormnulldatasource.h"
 #include <QDebug>
 
-IQORMNullDataSource::IQORMNullDataSource(QObject *parent) :
+IqOrmNullDataSource::IqOrmNullDataSource(QObject *parent) :
     IqOrmAbstractDataSource(parent)
 {
 }
 
-void IQORMNullDataSource::printWarnign() const
+IqOrmAbstractObjectDataSource *IqOrmNullDataSource::objectDataSource() const
+{
+    printWarnign();
+    return Q_NULLPTR;
+}
+
+IqOrmAbstractModelDataSource *IqOrmNullDataSource::objectsModelDataSource() const
+{
+    printWarnign();
+    return Q_NULLPTR;
+}
+
+void IqOrmNullDataSource::printWarnign() const
 {
     qWarning() << "Data source not set. Use IQORMCore::setDataSource() first.";
 }

@@ -29,7 +29,7 @@ IqOrmCore *IqOrmCore::m_instance = Q_NULLPTR;
 IqOrmCore::IqOrmCore(QObject *parent) :
     QObject(parent),
     m_defaultTriggers(Q_NULLPTR),
-    m_dataSource(new IQORMNullDataSource(this))
+    m_dataSource(new IqOrmNullDataSource(this))
 {
 }
 

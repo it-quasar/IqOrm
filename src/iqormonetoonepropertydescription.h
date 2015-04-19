@@ -37,32 +37,6 @@ public:
     virtual const IqOrmMetaModel *associatedObjectOrmModel() const Q_DECL_OVERRIDE;
 };
 
-
-
-
-template <class T>
-IqOrmOneToOnePropertyDescription<T>::IqOrmOneToOnePropertyDescription(IqOrmMetaModel *parent) :
-    IqOrmBaseOneToOnePropertyDescription(parent)
-{
-}
-
-template <class T>
-bool IqOrmOneToOnePropertyDescription<T>::setValueFromObjectId(IqOrmObject *object,
-                                                               const QVariant &objectId) const
-{
-    return setPropertyValueFromObjectId<T>(this, object, objectId);
-}
-
-template <class T>
-QVariant IqOrmOneToOnePropertyDescription<T>::valueAsObjectId(const IqOrmObject *object) const
-{
-    return propertyValueAsObjectId<T>(this, object);
-}
-
-template <class T>
-const IqOrmMetaModel * IqOrmOneToOnePropertyDescription<T>::associatedObjectOrmModel() const
-{
-    return T::staticOrmMetaModel();
-}
+#include "iqormonetoonepropertydescription_impl.h"
 
 #endif // IQORMONETOONEPROPERTYDESCRIPTION_H

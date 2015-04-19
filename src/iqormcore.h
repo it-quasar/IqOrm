@@ -26,8 +26,6 @@
 #include <QPointer>
 #include "iqorm_global.h"
 
-class IqOrmObject;
-class IqOrmAbstractSynchronizer;
 class IqOrmAbstractDataSource;
 class IqOrmAbstractTriggers;
 

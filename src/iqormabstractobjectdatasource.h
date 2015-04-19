@@ -21,13 +21,13 @@
 #define IQORMABSTRACTOBJECTDATASOURCE_H
 
 #include <QObject>
-#include "iqormdatasourceoperationresult.h"
 #include "iqorm_global.h"
 
 
 class IqOrmAbstractDataSource;
 class IqOrmObject;
 class IqOrmPropertyDescription;
+class IqOrmDataSourceOperationResult;
 
 class IQORMSHARED_EXPORT IqOrmAbstractObjectDataSource : public QObject
 {

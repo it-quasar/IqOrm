@@ -17,39 +17,27 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#ifndef IQORMABSTRACTOBJECTSMODELDATASOURCE_H
-#define IQORMABSTRACTOBJECTSMODELDATASOURCE_H
+#ifndef IQORMMODELPRIVATEACCESSOR_H
+#define IQORMMODELPRIVATEACCESSOR_H
 
-#include <QObject>
-#include "iqormdatasourceoperationresult.h"
-#include "iqorm_global.h"
+#include "iqormbasemodel.h"
 
+namespace IqOrmPrivate {
 
-class IqOrmAbstractDataSource;
-class IqOrmBaseModel;
-class IqOrmMetaModel;
-class IqOrmAbstractFilter;
-
-class IQORMSHARED_EXPORT IqOrmAbstractObjectsModelDataSource : public QObject
+class IqOrmModelPrivateAccessor
 {
-    Q_OBJECT
 public:
-    enum OrderBy
-    {
-        Asc,
-        Desc
-    };
+    static void append(IqOrmBaseModel *model, IqOrmObject* object);
 
-    explicit IqOrmAbstractObjectsModelDataSource(IqOrmAbstractDataSource *parent = Q_NULLPTR);
+    static void insert(IqOrmBaseModel *model, int row, IqOrmObject* object);
 
-    virtual ~IqOrmAbstractObjectsModelDataSource();
+    static void remove(IqOrmBaseModel *model, IqOrmObject* object);
 
-    virtual IqOrmDataSourceOperationResult loadModel(IqOrmBaseModel *model,
-                                                     qint64 limit = -1,
-                                                     qint64 offset = 0,
-                                                     OrderBy orderBy = Asc) = 0;
+    static void clear(IqOrmBaseModel *model);
 
-    virtual IqOrmDataSourceOperationResult truncateModel(const IqOrmMetaModel *ormModel) = 0;
+    static IqOrmObject *createChildObject(IqOrmBaseModel *model);
 };
 
-#endif // IQORMABSTRACTOBJECTSMODELDATASOURCE_H
+}
+
+#endif // IQORMMODELPRIVATEACCESSOR_H

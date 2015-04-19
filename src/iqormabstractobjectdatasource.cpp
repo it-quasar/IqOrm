@@ -24,6 +24,7 @@
 #include "iqormerror.h"
 #include "iqormobject.h"
 #include "iqormobjectprivateaccessor.h"
+#include "iqormdatasourceoperationresult.h"
 #include <QDebug>
 
 IqOrmAbstractObjectDataSource::IqOrmAbstractObjectDataSource(IqOrmAbstractDataSource *parent) :
@@ -37,7 +38,7 @@ IqOrmAbstractObjectDataSource::~IqOrmAbstractObjectDataSource()
 
 void IqOrmAbstractObjectDataSource::resetObject(IqOrmObject *object)
 {
-    IqOrmObjectPrivateAccessor::resetObject(object);
+    IqOrmPrivate::IqOrmObjectPrivateAccessor::resetObject(object);
 }
 
 //bool IqOrmAbstractObjectDataSource::loadObjectAllManyToManyReferences(IqOrmObject *object) const

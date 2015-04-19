@@ -20,6 +20,8 @@
 #include "iqormobjectprivateaccessor.h"
 #include "iqormobject.h"
 
+namespace IqOrmPrivate {
+
 void IqOrmObjectPrivateAccessor::setObjectId(IqOrmObject *object, const int id)
 {
     Q_CHECK_PTR(object);
@@ -61,4 +63,6 @@ bool IqOrmObjectPrivateAccessor::isObjectSavedToDataSource(const IqOrmObject *ob
 {
     Q_CHECK_PTR(object);
     return object->isSavedToDataSource();
+}
+
 }

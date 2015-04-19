@@ -20,12 +20,8 @@
 #ifndef IQORMLIB_H
 #define IQORMLIB_H
 
-#include "iqorm_global.h"
-#include "iqormobjectfactory.h"
 #include <QCoreApplication>
-#include "iqormmetamodel.h"
-#include <QAtomicInt>
-#include <QDebug>
+#include "iqorm_global.h"
 
 class IQORMSHARED_EXPORT IqOrmLib
 {
@@ -47,26 +43,6 @@ private:
     static QList<initializatorMember> m_ormModelInitializators;
 };
 
-template <class T>
-void IqOrmLib::ormModelIninitializator()
-{
-    IqOrmObjectFactory::registerClass<T>();
-    T tempObject;
-    const IqOrmMetaModel *staticMetaModel = T::staticOrmMetaModel();
-    Q_CHECK_PTR(staticMetaModel);
-    IqOrmMetaModel * metaModel = const_cast<IqOrmMetaModel *>(staticMetaModel);
-    metaModel->setTargetStaticMetaObject(&T::staticMetaObject);
-    tempObject.initializeOrmMetaModel(metaModel);
-    Q_ASSERT_X(metaModel->isValid(),
-               Q_FUNC_INFO,
-               QObject::tr("IqOrmModel for class %0 not valid.")
-               .arg(T::staticMetaObject.className()).toLocal8Bit().constData());
-}
-
-template <class T>
-void IqOrmLib::scheduleOrmModelInitialization()
-{
-    m_ormModelInitializators.append(&ormModelIninitializator<T>);
-}
+#include "iqormlib_impl.h"
 
 #endif // IQORMLIB_H

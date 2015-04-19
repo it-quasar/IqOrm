@@ -17,7 +17,7 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#include "iqormsqlobjectsmodeldatasource.h"
+#include "iqormsqlmodeldatasource.h"
 #include "iqormsqlobjectdatasource.h"
 #include "iqormfilter.h"
 #include "iqormgroupfilter.h"
@@ -32,15 +32,17 @@
 #include <QSqlQuery>
 #include "iqormobjectprivateaccessor.h"
 #include "iqormtransactioncontrol.h"
+#include "iqormmodelprivateaccessor.h"
+#include "iqormdatasourceoperationresult.h"
 
 
-IqOrmSqlObjectsModelDataSource::IqOrmSqlObjectsModelDataSource(IqOrmSqlDataSource *sqlDataSource) :
-    IqOrmAbstractObjectsModelDataSource(sqlDataSource),
+IqOrmSqlModelDataSource::IqOrmSqlModelDataSource(IqOrmSqlDataSource *sqlDataSource) :
+    IqOrmAbstractModelDataSource(sqlDataSource),
     m_sqlDataSource(sqlDataSource)
 {
 }
 
-IqOrmDataSourceOperationResult IqOrmSqlObjectsModelDataSource::loadModel(IqOrmBaseModel *model,
+IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel *model,
                                                                          qint64 limit,
                                                                          qint64 offset,
                                                                          OrderBy orderBy)
@@ -49,7 +51,7 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectsModelDataSource::loadModel(IqOrmBa
     Q_CHECK_PTR(model);
     Q_CHECK_PTR(m_sqlDataSource);
 
-    const IqOrmMetaModel *ormModel = model->childsOrmModel();
+    const IqOrmMetaModel *ormModel = model->childsOrmMetaModel();
     Q_CHECK_PTR(ormModel);
 
     bool ok = false;
@@ -147,7 +149,7 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectsModelDataSource::loadModel(IqOrmBa
     QSqlQuery query = m_sqlDataSource->execQuery(queryStr, bindValues, true, &ok, &error);
 
     if (!ok) {
-        model->clear();
+        IqOrmPrivate::IqOrmModelPrivateAccessor::clear(model);
         result.setError(error);
         return result;
     }
@@ -191,7 +193,7 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectsModelDataSource::loadModel(IqOrmBa
             }
         } else {
             //Если не нашли объект с таким ид, то создадим новый объект
-            IqOrmObject *newObject = model->createChildObject();
+            IqOrmObject *newObject = IqOrmPrivate::IqOrmModelPrivateAccessor::createChildObject(model);
             Q_CHECK_PTR(newObject);
 
             //Установим для объекта параметры из запроса
@@ -199,7 +201,7 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectsModelDataSource::loadModel(IqOrmBa
             QString error;
             if(IqOrmSqlObjectDataSource::loadObjectFromSQLRecord(newObject, query.record(), &error)) {
                 //Добавим новый объект в модель
-                model->append(newObject);
+                IqOrmPrivate::IqOrmModelPrivateAccessor::append(model, newObject);
             } else {
                 //Т.к. объект не загрузился, удалим его
                 delete newObject;
@@ -213,13 +215,13 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectsModelDataSource::loadModel(IqOrmBa
 
     //Удалим из модели все объекты на удаление
     foreach (IqOrmObject *objectToRemove, objectsToRemove) {
-        model->remove(objectToRemove);
+        IqOrmPrivate::IqOrmModelPrivateAccessor::remove(model, objectToRemove);
     }
 
     return result;
 }
 
-IqOrmDataSourceOperationResult IqOrmSqlObjectsModelDataSource::truncateModel(const IqOrmMetaModel *ormModel)
+IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::truncateModel(const IqOrmMetaModel *ormModel)
 {
     IqOrmDataSourceOperationResult result;
     Q_CHECK_PTR(m_sqlDataSource);
@@ -319,7 +321,7 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectsModelDataSource::truncateModel(con
 //    return result;
 //}
 
-QString IqOrmSqlObjectsModelDataSource::filterString(const IqOrmMetaModel *ormModel,
+QString IqOrmSqlModelDataSource::filterString(const IqOrmMetaModel *ormModel,
                                                      const IqOrmAbstractFilter *filter,
                                                      QVariantList *bindValues) const
 {

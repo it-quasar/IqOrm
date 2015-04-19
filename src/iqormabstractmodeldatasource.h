@@ -17,45 +17,37 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#ifndef IQORMSQLOBJECTSMODELDATASOURCE_H
-#define IQORMSQLOBJECTSMODELDATASOURCE_H
+#ifndef IQORMABSTRACTMODELDATASOURCE_H
+#define IQORMABSTRACTMODELDATASOURCE_H
 
-#include "iqormabstractobjectsmodeldatasource.h"
+#include <QObject>
 #include "iqorm_global.h"
-#include <QSqlDriver>
 
-class IqOrmAbstractFilter;
-class IqOrmSqlDataSource;
+class IqOrmAbstractDataSource;
+class IqOrmBaseModel;
+class IqOrmMetaModel;
+class IqOrmDataSourceOperationResult;
 
-class IQORMSHARED_EXPORT IqOrmSqlObjectsModelDataSource : public IqOrmAbstractObjectsModelDataSource
+class IQORMSHARED_EXPORT IqOrmAbstractModelDataSource : public QObject
 {
     Q_OBJECT
 public:
-    explicit IqOrmSqlObjectsModelDataSource(IqOrmSqlDataSource *sqlDataSource = Q_NULLPTR);
+    enum OrderBy
+    {
+        Asc,
+        Desc
+    };
+
+    explicit IqOrmAbstractModelDataSource(IqOrmAbstractDataSource *parent = Q_NULLPTR);
+
+    virtual ~IqOrmAbstractModelDataSource();
 
     virtual IqOrmDataSourceOperationResult loadModel(IqOrmBaseModel *model,
                                                      qint64 limit = -1,
                                                      qint64 offset = 0,
-                                                     OrderBy orderBy = Asc) Q_DECL_OVERRIDE;
+                                                     OrderBy orderBy = Asc) = 0;
 
-    virtual IqOrmDataSourceOperationResult truncateModel(const IqOrmMetaModel *ormModel) Q_DECL_OVERRIDE;
-
-//    virtual QList<qint64> findObjects(const IqOrmModel *ormModel,
-//                                      const IqOrmAbstractFilter *filter,
-//                                      qint64 limit = -1,
-//                                      qint64 offset = 0,
-//                                      bool *ok = Q_NULLPTR,
-//                                      QString *errorMessage = Q_NULLPTR) const Q_DECL_OVERRIDE;
-
-private:
-    IqOrmSqlDataSource* m_sqlDataSource;
-
-    QString filterString(const IqOrmMetaModel *ormModel,
-                         const IqOrmAbstractFilter *filter,
-                         QVariantList *bindValues) const;
-
-//    QStringList referencingTableNames(const IqOrmModel *ormModel,
-//                                      const IqOrmAbstractFilter *filter) const;
+    virtual IqOrmDataSourceOperationResult truncateModel(const IqOrmMetaModel *ormModel) = 0;
 };
 
-#endif // IQORMSQLOBJECTSMODELDATASOURCE_H
+#endif // IQORMABSTRACTMODELDATASOURCE_H

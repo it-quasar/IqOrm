@@ -18,7 +18,6 @@
  **********************************************************************************/
 
 #include "iqormlib.h"
-#include <QMetaType>
 #include <QDebug>
 
 QList<void (*)()> IqOrmLib::m_ormModelInitializators;

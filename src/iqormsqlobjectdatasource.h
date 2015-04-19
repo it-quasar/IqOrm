@@ -26,11 +26,13 @@
 #include <QSqlRecord>
 #include <QSqlDriver>
 #include <QVariant>
-#include "iqormsqlpropertydescriptionsprocessor.h"
 
 class IqOrmSqlDataSource;
 class IqOrmPropertyDescription;
 class IqOrmMetaModel;
+class IqOrmSqlPropertyDescriptionsProcessor;
+class IqOrmOneObjectDescribingPropertyDescription;
+class IqOrmManyObjectDescribingPropertyDescription;
 
 class IQORMSHARED_EXPORT IqOrmSqlObjectDataSource : public IqOrmAbstractObjectDataSource
 {
@@ -47,7 +49,7 @@ public:
     virtual IqOrmDataSourceOperationResult removeObject(IqOrmObject* object) Q_DECL_OVERRIDE;
 
 private:
-    friend class IqOrmSqlObjectsModelDataSource;
+    friend class IqOrmSqlModelDataSource;
 
     static bool loadObjectFromSQLRecord(IqOrmObject* object,
                                         const QSqlRecord &record,

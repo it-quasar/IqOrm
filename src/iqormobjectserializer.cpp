@@ -117,7 +117,7 @@ IqOrmObject* IqOrmObjectSerializer::deserialize(const QString &serializeData,
             return Q_NULLPTR;
         }
 
-        IqOrmObjectPrivateAccessor::setObjectId(object, rootObject.value("objectId").toInt(-1));
+        IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, rootObject.value("objectId").toInt(-1));
 
         QJsonObject propertiesObject = rootObject.value("properties").toObject();
         const IqOrmMetaModel *ormModel = object->ormMetaModel();

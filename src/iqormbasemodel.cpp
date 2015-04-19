@@ -23,6 +23,12 @@
 #include "iqormcore.h"
 #include "iqormtransactioncontrol.h"
 #include "iqormabstractdatasource.h"
+#include "iqormmetamodel.h"
+#include "iqormobject.h"
+#include "iqormabstractmodeldatasource.h"
+#include "iqormerror.h"
+#include "iqormfilter.h"
+#include "iqormdatasourceoperationresult.h"
 #include <QMetaProperty>
 #include <QQuickItem>
 
@@ -147,19 +153,19 @@ bool IqOrmBaseModel::load(qint64 limit, qint64 offset, IqOrmBaseModel::OrderBy o
         return false;
     }
 
-    const IqOrmMetaModel *ormModel = childsOrmModel();
+    const IqOrmMetaModel *ormModel = childsOrmMetaModel();
     if (!ormModel) {
         lastError()->setText(QObject::tr("Not found valid child objects ORM model."));
         return false;
     }
 
-    IqOrmAbstractObjectsModelDataSource::OrderBy dataSourceOrderBy;
+    IqOrmAbstractModelDataSource::OrderBy dataSourceOrderBy;
     switch (orderBy) {
     case Asc:
-        dataSourceOrderBy = IqOrmAbstractObjectsModelDataSource::Asc;
+        dataSourceOrderBy = IqOrmAbstractModelDataSource::Asc;
         break;
     case Desc:
-        dataSourceOrderBy = IqOrmAbstractObjectsModelDataSource::Desc;
+        dataSourceOrderBy = IqOrmAbstractModelDataSource::Desc;
         break;
 
     }
@@ -255,7 +261,7 @@ bool IqOrmBaseModel::truncate(IqOrmAbstractDataSource *dataSource)
         m_lastDataSource = IqOrmCore::dataSource();
 
     QString error;
-    bool result = processTruncate(childsOrmModel(), m_lastDataSource, &error);
+    bool result = processTruncate(childsOrmMetaModel(), m_lastDataSource, &error);
 
     if (result)
         clear();
@@ -317,12 +323,12 @@ void IqOrmBaseModel::insert(int row, IqOrmObject *object)
     Q_CHECK_PTR(qobject);
     qobject->setParent(this);
 
-    Q_CHECK_PTR(childsOrmModel());
-    Q_ASSERT_X(qobject->metaObject()->className() == childsOrmModel()->targetStaticMetaObject()->className(),
+    Q_CHECK_PTR(childsOrmMetaModel());
+    Q_ASSERT_X(qobject->metaObject()->className() == childsOrmMetaModel()->targetStaticMetaObject()->className(),
                Q_FUNC_INFO,
                "Try to insert object with diferent type.");
 
-    foreach (const IqOrmPropertyDescription *propetyDescription, childsOrmModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propetyDescription, childsOrmMetaModel()->propertyDescriptions()) {
         QMetaMethod notifiSignal = propetyDescription->targetStaticMetaPropery().notifySignal();
         if (!notifiSignal.isValid())
             continue;
@@ -424,11 +430,11 @@ Qt::ItemFlags IqOrmBaseModel::flags(const QModelIndex &index) const
 
     QString propertyName = m_visibleProperties[index.column()];
 
-    Q_CHECK_PTR(childsOrmModel());
-    Q_CHECK_PTR(childsOrmModel()->targetStaticMetaObject());
+    Q_CHECK_PTR(childsOrmMetaModel());
+    Q_CHECK_PTR(childsOrmMetaModel()->targetStaticMetaObject());
 
-    int propertyIndex = childsOrmModel()->targetStaticMetaObject()->indexOfProperty(propertyName.toLocal8Bit().constData());
-    QMetaProperty property = childsOrmModel()->targetStaticMetaObject()->property(propertyIndex);
+    int propertyIndex = childsOrmMetaModel()->targetStaticMetaObject()->indexOfProperty(propertyName.toLocal8Bit().constData());
+    QMetaProperty property = childsOrmMetaModel()->targetStaticMetaObject()->property(propertyIndex);
 
     if (m_editableProperties.contains(propertyName)
             && property.isWritable())
@@ -441,9 +447,9 @@ QHash<int, QByteArray> IqOrmBaseModel::roleNames() const
 {
     QHash<int, QByteArray> result;
 
-    Q_CHECK_PTR(childsOrmModel());
+    Q_CHECK_PTR(childsOrmMetaModel());
     int i = FIRST_QML_ROLE;
-    foreach (const IqOrmPropertyDescription *propertyDescription, childsOrmModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, childsOrmMetaModel()->propertyDescriptions()) {
         result[i] = propertyDescription->propertyName().toLocal8Bit().constData();
         ++i;
     }
@@ -543,13 +549,21 @@ QVariant IqOrmBaseModel::data(const QModelIndex &index, int role) const
     if (propertyName.isEmpty())
         return QVariant();
 
-    Q_CHECK_PTR(childsOrmModel());
+    Q_CHECK_PTR(childsOrmMetaModel());
     if (role == Qt::DisplayRole
             || role == Qt::EditRole
             || role > FIRST_QML_ROLE) {
-        const IqOrmPropertyDescription *propetyDescription = childsOrmModel()->propertyDescription(propertyName);
-        Q_CHECK_PTR(propetyDescription);
-        return propetyDescription->value(item);
+        if (propertyName == QLatin1String("objectId")) {
+            return item->objectId();
+        } else {
+            const IqOrmPropertyDescription *propetyDescription = childsOrmMetaModel()->propertyDescription(propertyName);
+            Q_ASSERT_X(propetyDescription,
+                       Q_FUNC_INFO,
+                       tr("Description for property \"%0\" not found in IqOrmMetaModel for class \"%1\".")
+                       .arg(propertyName)
+                       .arg(childsOrmMetaModel()->targetStaticMetaObject()->className()).toLocal8Bit().constData());
+            return propetyDescription->value(item);
+        }
     }
 
     return QVariant();
@@ -585,8 +599,8 @@ bool IqOrmBaseModel::setData(const QModelIndex &index, const QVariant &value, in
     if (propertyName.isEmpty())
         return false;
 
-    Q_CHECK_PTR(childsOrmModel());
-    const IqOrmPropertyDescription *propetyDescription = childsOrmModel()->propertyDescription(propertyName);
+    Q_CHECK_PTR(childsOrmMetaModel());
+    const IqOrmPropertyDescription *propetyDescription = childsOrmMetaModel()->propertyDescription(propertyName);
     Q_CHECK_PTR(propetyDescription);
 
     bool result = propetyDescription->setValue(item, value);

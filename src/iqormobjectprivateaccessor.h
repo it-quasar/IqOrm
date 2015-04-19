@@ -26,6 +26,8 @@
 class IqOrmObject;
 class IqOrmPropertyDescription;
 
+namespace IqOrmPrivate {
+
 class IQORMSHARED_EXPORT IqOrmObjectPrivateAccessor
 {
 public:
@@ -44,5 +46,7 @@ public:
 
     static bool isObjectSavedToDataSource(const IqOrmObject *object);
 };
+
+}
 
 #endif // IQORMOBJECTPRIVATEACCESSOR_H

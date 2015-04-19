@@ -34,7 +34,7 @@ public:
         Update
     };
 
-    explicit IqOrmAbstractTriggers(QObject *parent = 0);
+    explicit IqOrmAbstractTriggers(QObject *parent = Q_NULLPTR);
     virtual ~IqOrmAbstractTriggers();
 
     virtual bool preLoad(IqOrmObject *object, qint64 objectId, QString *errorText = Q_NULLPTR);

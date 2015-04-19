@@ -37,29 +37,6 @@ public:
     virtual const IqOrmMetaModel *associatedObjectOrmModel() const Q_DECL_OVERRIDE;
 };
 
-template <class T>
-IqOrmInversedManyToManyPropertyDescription<T>::IqOrmInversedManyToManyPropertyDescription(IqOrmMetaModel *parent) :
-    IqOrmBaseInversedManyToManyPropertyDescription(parent)
-{
-}
-
-template <class T>
-bool IqOrmInversedManyToManyPropertyDescription<T>::setValueFromObjectIds(IqOrmObject *object,
-                                                                          const QVariantList &objectIds) const
-{
-    return setPropertyValueFromObjectIds<T>(this, object, objectIds);
-}
-
-template <class T>
-QVariantList IqOrmInversedManyToManyPropertyDescription<T>::valueAsObjectIds(const IqOrmObject *object) const
-{
-    return propertyValueAsObjectIds<T>(this, object);
-}
-
-template <class T>
-const IqOrmMetaModel * IqOrmInversedManyToManyPropertyDescription<T>::associatedObjectOrmModel() const
-{
-    return T::staticOrmMetaModel();
-}
+#include "iqorminversedmanytomanypropertydescription_impl.h"
 
 #endif // IQORMINVERSEDMANYTOMANYPROPERTYDESCRIPTION_H

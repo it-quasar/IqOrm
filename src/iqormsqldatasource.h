@@ -21,8 +21,6 @@
 #define IQORMSQLDATASOURCE_H
 
 #include "iqormabstractdatasource.h"
-#include "iqormsqlobjectdatasource.h"
-#include "iqormsqlobjectsmodeldatasource.h"
 #include "iqormsqloperationtracerlog.h"
 #include "iqorm_global.h"
 #include <QSqlRecord>
@@ -30,6 +28,8 @@
 #include <QHash>
 #include <QVariant>
 #include <QMutex>
+#include "iqormsqlobjectdatasource.h"
+#include "iqormsqlmodeldatasource.h"
 
 class IqOrmObject;
 class IqOrmMetaModel;
@@ -51,7 +51,7 @@ public:
 
     virtual IqOrmSqlObjectDataSource *objectDataSource() const Q_DECL_OVERRIDE;
 
-    virtual IqOrmSqlObjectsModelDataSource *objectsModelDataSource() const Q_DECL_OVERRIDE;
+    virtual IqOrmSqlModelDataSource *objectsModelDataSource() const Q_DECL_OVERRIDE;
 
     QSqlQuery execQuery(const QString &query,
                         bool *ok = Q_NULLPTR,
@@ -99,11 +99,12 @@ public:
 
     DatabaseType databaseType() const;
 
+    void setTracerLog(IqOrmSqlOperationTracerLog *tracerLog);
     IqOrmSqlOperationTracerLog *tracerLog() const;
 
 private:
     friend class IqOrmSqlObjectDataSource;
-    friend class IqOrmSqlObjectsModelDataSource;
+    friend class IqOrmSqlModelDataSource;
     friend class IqOrmSqlAbstractPropertyDescriptionProcessor;
 
     bool openDB() const;
@@ -116,7 +117,7 @@ private:
     QSqlDriver *m_sqlDriver;
 
     IqOrmSqlObjectDataSource *m_objectDataSource;
-    IqOrmSqlObjectsModelDataSource *m_objectsModelDataSource;
+    IqOrmSqlModelDataSource *m_objectsModelDataSource;
     bool m_transactionIsOpen;
     QMutex m_transactionMutex;
 

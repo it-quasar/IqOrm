@@ -21,11 +21,12 @@
 #define IQORMPROPERTYDESCRIPTION_H
 
 #include <QObject>
-#include "iqorm_global.h"
 #include <QMetaProperty>
+#include "iqorm_global.h"
 
 class IqOrmObject;
 class IqOrmMetaModel;
+
 class IQORMSHARED_EXPORT IqOrmPropertyDescription : public QObject
 {
     Q_OBJECT

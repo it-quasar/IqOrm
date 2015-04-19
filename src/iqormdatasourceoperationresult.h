@@ -27,6 +27,7 @@
 #include "iqorm_global.h"
 
 class IqOrmAbstractDataSource;
+
 class IQORMSHARED_EXPORT IqOrmDataSourceOperationResult
 {
 public:
