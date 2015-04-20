@@ -29,11 +29,13 @@
 #include "iqormerror.h"
 #include "iqormfilter.h"
 #include "iqormdatasourceoperationresult.h"
+#include "iqormobjectrawdata.h"
 #include <QMetaProperty>
 #include <QQuickItem>
 
 IqOrmBaseModel::IqOrmModelItem::IqOrmModelItem() :
-    object(Q_NULLPTR)
+    object(Q_NULLPTR),
+    qobject(Q_NULLPTR)
 {
 }
 
@@ -57,7 +59,9 @@ QObject *IqOrmBaseModel::get(int row) const
     if (row < 0 || row >= rowCount())
         return Q_NULLPTR;
 
-    return dynamic_cast<QObject *>(m_items.at(row));
+    IqOrmModelItem *item = m_items[row];
+    createItemObject(item);
+    return item->qobject;
 }
 
 void IqOrmBaseModel::setPropertyEditable(const QString &property, const bool editable)
@@ -217,9 +221,9 @@ void IqOrmBaseModel::onObjectChanged()
 
     IqOrmObject *senderObject = dynamic_cast<IqOrmObject *>(senderItem);
     Q_CHECK_PTR(senderObject);
-    Q_ASSERT(m_items.contains(senderObject));
+    Q_ASSERT(m_objectRows.contains(senderObject));
 
-    int itemRow = m_items.indexOf(senderObject);
+    int itemRow = m_objectRows[senderObject];
     int propertyColumn = m_visibleProperties.indexOf(property);
 
     if (propertyColumn != -1) {
@@ -282,7 +286,12 @@ bool IqOrmBaseModel::truncate(IqOrmAbstractDataSource *dataSource)
 
 QList<IqOrmObject *> IqOrmBaseModel::toObjectList() const
 {
-    return m_items;
+    QList<IqOrmObject *> result;
+    foreach (IqOrmModelItem *item, m_items) {
+        createItemObject(item);
+        result << item->object;
+    }
+    return result;
 }
 
 qint64 IqOrmBaseModel::count() const
@@ -297,55 +306,139 @@ void IqOrmBaseModel::clear()
 
     emit beginRemoveRows(QModelIndex(), 0, rowCount() - 1);
 
-    for (int i = 0; i < rowCount(); ++i) {
-        QObject *item = get(i);
-        if (item->parent() == this)
-            item->deleteLater();
+    foreach (IqOrmModelItem *item, m_items) {
+        if (item->qobject)
+            item->qobject->deleteLater();
     }
-
+    qDeleteAll(m_items);
     m_items.clear();
+    m_objectRows.clear();
 
     emit endRemoveRows();
     emit countChanged();
 }
 
 
-void IqOrmBaseModel::insertObjects(qint64 row, QList<IqOrmObject *> objects)
+void IqOrmBaseModel::insertItems(qint64 row, QList<IqOrmModelItem *> items)
 {
     int rowToInsert = row < 0?0:row;
 
     if (rowToInsert > rowCount())
         rowToInsert = rowCount();
 
-    emit beginInsertRows(QModelIndex(), rowToInsert, rowToInsert + objects.count() - 1);
+    emit beginInsertRows(QModelIndex(), rowToInsert, rowToInsert + items.count() - 1);
 
     int j = -1;
-    for (int i = rowToInsert; i < rowToInsert + objects.count(); ++i) {
+    for (int i = rowToInsert; i < rowToInsert + items.count(); ++i) {
         ++j;
-        IqOrmObject *object = objects[j];
-        Q_CHECK_PTR(object);
+        IqOrmModelItem *item = items[j];
+        Q_CHECK_PTR(item);
 
-        m_items.insert(i, object);
-
-        QObject *qobject = dynamic_cast<QObject *>(object);
-        Q_CHECK_PTR(qobject);
-        qobject->setParent(this);
-
-        Q_CHECK_PTR(childsOrmMetaModel());
-        Q_ASSERT_X(qobject->metaObject()->className() == childsOrmMetaModel()->targetStaticMetaObject()->className(),
-                   Q_FUNC_INFO,
-                   "Try to insert object with diferent type.");
-
-        if (m_childChangeMonitoring) {
-            enableChildMonitoring(object);
-        }
+        m_items.insert(i, item);
     }
 
     emit endInsertRows();
     emit countChanged();
 }
 
-void IqOrmBaseModel::enableChildMonitoring(IqOrmObject *child)
+void IqOrmBaseModel::setObjectsValues(const QList<IqOrmObjectRawData> &objectValues)
+{
+    //Список объектов на удаление
+    QList<IqOrmModelItem *> objectsToRemove = m_items;
+    //Объекты на удаление
+    QList<IqOrmModelItem *> objectsToAdd;
+
+    //Для быстрого поиска сделаем список ид объектов
+    QHash<IqOrmModelItem *, qint64> objectRows;
+    QHash<qint64, qint64> objectIdsRows;
+    for (int i = 0; i < objectsToRemove.count(); ++i) {
+        IqOrmModelItem *item = objectsToRemove[i];
+        Q_CHECK_PTR(item);
+        objectRows[item] = i;
+        objectIdsRows[item->rawData.objectId] = i;
+    }
+
+    //Пройдемся по всем записям
+    foreach (const IqOrmObjectRawData &rawData, objectValues) {
+        //Получим objectId
+        qint64 objectId = rawData.objectId;
+
+        //Если модель содержит объект с данным ид
+        if (objectIdsRows.contains(objectId)) {
+            objectsToAdd << Q_NULLPTR;
+
+            //Найдем объект с таким ид
+            IqOrmModelItem *item = m_items[objectIdsRows[objectId]];
+            Q_CHECK_PTR(item);
+
+            //Установим для объекта параметры из запроса
+            item->rawData = rawData;
+            if (item->object) {
+                IqOrmPrivate::IqOrmObjectPrivateAccessor::setVaules(item->object, rawData);
+                IqOrmPrivate::IqOrmObjectPrivateAccessor::updateObjectSourceProperites(item->object);
+            }
+            //Такой объект есть в модели и в выборке, значит удалять его не надо
+            objectsToRemove.removeOne(item);
+        } else {
+            //Если не нашли объект с таким ид, то создадим новый объект
+            IqOrmModelItem *newItem = new IqOrmModelItem();
+            newItem->rawData = rawData;
+
+            //ДОбавим объект для сохранения
+            objectsToAdd << newItem;
+        }
+    }
+
+    //Удалим из модели все объекты на удаление
+    //Удалять будем пачками
+    IqOrmModelItem *object = Q_NULLPTR;
+    for (int i = objectsToRemove.count() - 1; i > -1; --i) {
+        object = objectsToRemove[i];
+        Q_CHECK_PTR(object);
+
+        int rowCount = 1;
+        int firstRow = objectRows[object];
+        for (int j = i - 1; j > -1; --j) {
+            object = objectsToRemove[j];
+            Q_CHECK_PTR(object);
+
+            int currentRow = objectRows[object];
+            if (currentRow == firstRow - 1) {
+                rowCount++;
+                firstRow = currentRow;
+            } else {
+                break;
+            }
+        }
+
+        removeRows(firstRow, rowCount);
+
+        i = i - rowCount + 1;
+    }
+
+    //Добавим новые объекты
+    //Добавлять будем пачками
+    for (int i = 0; i < objectsToAdd.count(); ++i) {
+        object = objectsToAdd[i];
+        if (!object)
+            continue;
+
+        QList<IqOrmModelItem *> rowsToAdd;
+        rowsToAdd << object;
+        for (int j = i + 1; j < objectsToAdd.count(); ++j) {
+            object = objectsToAdd[j];
+            if (!object)
+                break;
+            rowsToAdd << object;
+        }
+
+        insertItems(i, rowsToAdd);
+
+        i = i + rowsToAdd.count() - 1;
+    }
+}
+
+void IqOrmBaseModel::enableChildMonitoring(IqOrmObject *child) const
 {
     QObject *qobject = dynamic_cast<QObject *>(child);
     Q_CHECK_PTR(qobject);
@@ -361,11 +454,24 @@ void IqOrmBaseModel::enableChildMonitoring(IqOrmObject *child)
     }
 }
 
-void IqOrmBaseModel::disableChildMonitoring(IqOrmObject *child)
+void IqOrmBaseModel::disableChildMonitoring(IqOrmObject *child) const
 {
     QObject *qobject = dynamic_cast<QObject *>(child);
     Q_CHECK_PTR(qobject);
     disconnect(qobject, 0, this, 0);
+}
+
+void IqOrmBaseModel::createItemObject(IqOrmBaseModel::IqOrmModelItem *item) const
+{
+    Q_CHECK_PTR(item);
+    if (!item->object) {
+        IqOrmObject *itemObject = createChildObject();
+        IqOrmPrivate::IqOrmObjectPrivateAccessor::setVaules(itemObject, item->rawData);
+        item->object = itemObject;
+        item->qobject = dynamic_cast<QObject *>(itemObject);
+        if (m_childChangeMonitoring)
+            enableChildMonitoring(item->object);
+    }
 }
 
 bool IqOrmBaseModel::childChangeMonitoring() const
@@ -377,36 +483,16 @@ void IqOrmBaseModel::setChildChangeMonitoring(bool childChangeMonitoring)
 {
     m_childChangeMonitoring = childChangeMonitoring;
     if (m_childChangeMonitoring) {
-        foreach (IqOrmObject *object, m_items) {
-            enableChildMonitoring(object);
+        foreach (IqOrmModelItem *item, m_items) {
+            if (item->object)
+                enableChildMonitoring(item->object);
         }
     } else {
-        foreach (IqOrmObject *object, m_items) {
-            disableChildMonitoring(object);
+        foreach (IqOrmModelItem *item, m_items) {
+            if (item->object)
+                disableChildMonitoring(item->object);
         }
     }
-}
-
-
-bool IqOrmBaseModel::remove(IqOrmObject *object)
-{
-    if (!m_items.contains(object))
-        return false;
-
-    disableChildMonitoring(object);
-
-    emit beginRemoveRows(QModelIndex(), m_items.indexOf(object), m_items.indexOf(object));
-
-    Q_ASSERT(m_items.removeOne(object));
-    QObject *qobject = dynamic_cast<QObject *>(object);
-    Q_CHECK_PTR(qobject);
-    if (qobject->parent() == this)
-        qobject->deleteLater();
-
-    emit endRemoveRows();
-    emit countChanged();
-
-    return true;
 }
 
 bool IqOrmBaseModel::removeRows(int row, int count, const QModelIndex &parent)
@@ -419,15 +505,13 @@ bool IqOrmBaseModel::removeRows(int row, int count, const QModelIndex &parent)
     emit beginRemoveRows(parent, row, row + count - 1);
 
     for (int i = row + count - 1; i >= row; --i) {
-        IqOrmObject *object = m_items[i];
-        Q_CHECK_PTR(object);
-        disableChildMonitoring(object);
-        QObject *qobject = dynamic_cast<QObject *>(object);
-        Q_CHECK_PTR(qobject);
-        if (qobject->parent() == this)
-            qobject->deleteLater();
-
+        IqOrmModelItem *item = m_items[i];
+        Q_CHECK_PTR(item);
+        if (item->object)
+            item->qobject->deleteLater();
+        m_objectRows.remove(item->object);
         m_items.removeAt(i);
+        delete item;
     }
 
     emit endRemoveRows();
@@ -439,31 +523,42 @@ bool IqOrmBaseModel::removeRows(int row, int count, const QModelIndex &parent)
 IqOrmObject *IqOrmBaseModel::take(int row)
 {
     Q_ASSERT(row >= 0 && row < count());
-    IqOrmObject *object = m_items[row];
+    IqOrmObject *object = dynamic_cast<IqOrmObject *>(get(row));
     Q_CHECK_PTR(object);
+
     disableChildMonitoring(object);
 
-    QObject *qobject = dynamic_cast<QObject *>(object);
-    Q_CHECK_PTR(qobject);
-    qobject->setParent(Q_NULLPTR);
+    Q_ASSERT(m_objectRows.contains(object));
 
-    remove(object);
+    emit beginRemoveRows(QModelIndex(), row, row);
+
+    IqOrmModelItem *item = m_items[row];
+    Q_CHECK_PTR(item);
+    delete item;
+    m_items.removeAt(row);
+    m_objectRows.remove(object);
+
+    emit endRemoveRows();
+    emit countChanged();
 
     return object;
 }
 
 IqOrmObject *IqOrmBaseModel::take(IqOrmObject *object)
 {
-    int objectRow = m_items.indexOf(object);
-    if (objectRow == -1)
-        return Q_NULLPTR;
+    if (m_objectRows.contains(object)) {
+        int objectRow = m_objectRows[object];
 
-    return take(objectRow);
+        return take(objectRow);
+    }
+    return Q_NULLPTR;
 }
 
 int IqOrmBaseModel::rowOf(const IqOrmObject *object) const
 {
-    return m_items.indexOf(const_cast<IqOrmObject *>(object));
+    if (!m_objectRows.contains(object))
+        return -1;
+    return m_objectRows[object];
 }
 
 IqOrmAbstractDataSource *IqOrmBaseModel::lastDataSource() const
@@ -570,7 +665,7 @@ bool IqOrmBaseModel::moveRows(const QModelIndex &sourceParent, int sourceRow, in
 
     emit beginMoveRows(sourceParent, sourceRow, sourceRow + correctedCount - 1, destinationParent, correctedDestinationChild);
 
-    QList<IqOrmObject *> temp;
+    QList<IqOrmModelItem *> temp;
 
     for (int i = sourceRow + correctedCount - 1; i >= sourceRow ; i--) {
         temp << m_items[i];
@@ -606,9 +701,8 @@ QVariant IqOrmBaseModel::data(const QModelIndex &index, int role) const
     if (role >= FIRST_QML_ROLE + qmlRoleNames.count())
         return QVariant();
 
-    IqOrmObject* item = m_items.at(row);
-    if (!item)
-        return QVariant();
+    IqOrmModelItem* item = m_items.at(row);
+    Q_CHECK_PTR(item);
 
     QString propertyName = "";
     if (role < FIRST_QML_ROLE) {
@@ -626,7 +720,10 @@ QVariant IqOrmBaseModel::data(const QModelIndex &index, int role) const
             || role == Qt::EditRole
             || role > FIRST_QML_ROLE) {
         if (propertyName == QLatin1String("objectId")) {
-            return item->objectId();
+            if (item->object)
+                return item->object->objectId();
+            else
+                return item->rawData.objectId;
         } else {
             const IqOrmPropertyDescription *propetyDescription = childsOrmMetaModel()->propertyDescription(propertyName);
             Q_ASSERT_X(propetyDescription,
@@ -634,7 +731,10 @@ QVariant IqOrmBaseModel::data(const QModelIndex &index, int role) const
                        tr("Description for property \"%0\" not found in IqOrmMetaModel for class \"%1\".")
                        .arg(propertyName)
                        .arg(childsOrmMetaModel()->targetStaticMetaObject()->className()).toLocal8Bit().constData());
-            return propetyDescription->value(item);
+            if (item->object)
+                return propetyDescription->value(item->object);
+            else
+                return item->rawData.values[propetyDescription];
         }
     }
 
@@ -656,9 +756,8 @@ bool IqOrmBaseModel::setData(const QModelIndex &index, const QVariant &value, in
     if (role >= FIRST_QML_ROLE + qmlRoleNames.count())
         return false;
 
-    IqOrmObject* item = m_items[row];
-    if (!item)
-        return false;
+    IqOrmObject* object = dynamic_cast<IqOrmObject *>(get(row));
+    Q_CHECK_PTR(object);
 
     QString propertyName = "";
     if (role < FIRST_QML_ROLE) {
@@ -675,7 +774,7 @@ bool IqOrmBaseModel::setData(const QModelIndex &index, const QVariant &value, in
     const IqOrmPropertyDescription *propetyDescription = childsOrmMetaModel()->propertyDescription(propertyName);
     Q_CHECK_PTR(propetyDescription);
 
-    bool result = propetyDescription->setValue(item, value);
+    bool result = propetyDescription->setValue(object, value);
 
     if (result)
         emit dataChanged(this->index(row,column), this->index(row, column));

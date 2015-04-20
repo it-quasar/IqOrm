@@ -26,6 +26,7 @@
 #include <QMetaMethod>
 #include "iqorm_global.h"
 #include "iqormfilter.h"
+#include "iqormobjectrawdata.h"
 
 class IqOrmMetaModel;
 class IqOrmObject;
@@ -114,9 +115,6 @@ public:
 
     void clear();
 
-    bool remove(IqOrmObject* object);
-
-    virtual bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) Q_DECL_OVERRIDE;
 
     virtual QVariant headerData(int section,
                                 Qt::Orientation orientation,
@@ -143,11 +141,13 @@ public:
                          const QVariant &value,
                          int role = Qt::EditRole) Q_DECL_OVERRIDE;
 
+    virtual bool removeRows(int row, int count, const QModelIndex &parent = QModelIndex()) Q_DECL_OVERRIDE;
+
 signals:
     void invisibleDataChanged(int row, const QString &property);
 
 protected:
-    virtual IqOrmObject * createChildObject() = 0;
+    virtual IqOrmObject * createChildObject() const = 0;
 
     void addPropertySiagnalIndex(const QString& property, int signalIndex);
     static bool processTruncate(const IqOrmMetaModel *childOrmModel,
@@ -172,27 +172,33 @@ private slots:
 
 private:
     friend class IqOrmPrivate::IqOrmModelPrivateAccessor;
-
-    void insertObjects(qint64 row, QList<IqOrmObject *> objects);
-
-    void enableChildMonitoring(IqOrmObject *child);
-    void disableChildMonitoring(IqOrmObject *child);
-
-private:
     class IqOrmModelItem
     {
     public:
         explicit IqOrmModelItem();
-        QHash<QString, QVariant> rawData;
+        IqOrmObjectRawData rawData;
         IqOrmObject *object;
+        QObject *qobject;
     };
+
+
+    void insertItems(qint64 row, QList<IqOrmModelItem *> items);
+    void setObjectsValues(const QList<IqOrmObjectRawData> &objectValues);
+
+    void enableChildMonitoring(IqOrmObject *child) const;
+    void disableChildMonitoring(IqOrmObject *child) const;
+
+    void createItemObject(IqOrmModelItem *item) const;
+
+private:
 
     QMetaMethod m_onObjectChangedMethod;
     IqOrmAbstractFilter *m_filters;
     IqOrmError *m_lastError;
     QPointer<IqOrmAbstractDataSource> m_lastDataSource;
 
-    QList<IqOrmObject *> m_items;
+    QList<IqOrmModelItem *> m_items;
+    QHash<const IqOrmObject *, qint64> m_objectRows;
 
     QStringList m_visibleProperties;
     QSet<QString> m_editableProperties;

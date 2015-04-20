@@ -86,14 +86,18 @@ signals:
     void readOnlyChanged();
 
 private:
-    void updateMetaPropertyIndex();
+    void updateMetaProperty();
 
 private:
     QString m_propertyName;
     const QMetaObject *m_targetStaticMetaObject;
-    int m_metaPropertyIndex;
+    QMetaProperty m_targetStaticMetaProperty;
     bool m_notNull;
     bool m_readOnly;
+
+    //Используем данные параметры для ускорее установления и получения свойств
+    QStringList m_propertyPath;
+    QString m_lastPropertyName;
 };
 
 #endif // IQORMPROPERTYDESCRIPTION_H

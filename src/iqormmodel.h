@@ -52,7 +52,7 @@ public:
     QList<T *> toList() const;
 
 protected:
-    virtual IqOrmObject * createChildObject() Q_DECL_OVERRIDE;
+    virtual IqOrmObject * createChildObject() const Q_DECL_OVERRIDE;
 
 private:
     static const IqOrmMetaModel *staticChidsOrmModel();

@@ -38,13 +38,13 @@ IqOrmModel<T>::~IqOrmModel()
 }
 
 template <class T>
-IqOrmObject * IqOrmModel<T>::createChildObject()
+IqOrmObject * IqOrmModel<T>::createChildObject() const
 {
     //Не передавать новому объекту в конструктор lastDataSource(), т.к. датосурс кастится к QObject
     //и принимается за родителя!!!
     T* newObject = new T();
     newObject->setDataSource(lastDataSource());
-    newObject->setParent(this);
+    newObject->setParent(const_cast<IqOrmModel<T> *>(this));
     return newObject;
 }
 

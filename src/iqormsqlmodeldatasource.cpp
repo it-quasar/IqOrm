@@ -30,6 +30,7 @@
 #include "iqormobject.h"
 #include <QDebug>
 #include <QSqlQuery>
+#include <QTime>
 #include "iqormobjectprivateaccessor.h"
 #include "iqormtransactioncontrol.h"
 #include "iqormmodelprivateaccessor.h"
@@ -47,6 +48,9 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
                                                                          qint64 offset,
                                                                          OrderBy orderBy)
 {
+    QTime time;
+    time.start();
+
     IqOrmDataSourceOperationResult result;
     Q_CHECK_PTR(model);
     Q_CHECK_PTR(m_sqlDataSource);
@@ -145,78 +149,33 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
     //Добавим оффсет
     queryStr.append(offsetStr);
 
+    qDebug() << "Prepare " << time.elapsed() << " msec";
 
     QSqlQuery query = m_sqlDataSource->execQuery(queryStr, bindValues, true, &ok, &error);
 
     if (!ok) {
-        IqOrmPrivate::IqOrmModelPrivateAccessor::clear(model);
+        model->clear();
         result.setError(error);
         return result;
     }
 
-    //Список объектов на удаление
-    QList<IqOrmObject *> objectsToRemove = model->toObjectList();
+    qDebug() << "Exec " << time.elapsed() << " msec";
 
-    //Для быстрого поиска сделаем список ид объектов
-    QList<qint64> objectIds;
-    foreach (IqOrmObject *object, objectsToRemove) {
-        if (!object)
-            continue;
-        objectIds << object->objectId();
-    }
-
+    QList<IqOrmObjectRawData> modelValues;
     //Пройдемся по всем записям
     while (query.next()) {
-        //Порядок колонок в ответе соответсвует порядку описания свойств в модели
-        //Первым в отвтете всегда идет objectId
-        //Получим objectId
-        qint64 objectId = query.value(0).toLongLong();
+        bool ok;
+        IqOrmObjectRawData rawData = IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(ormModel, query, &ok);
 
-        //Если модель содержит объект с данным ид
-        int indexOfObject = objectIds.indexOf(objectId);
-        if (indexOfObject > -1) {
-            //Найдем объект с таким ид
-            IqOrmObject *oldObject = dynamic_cast<IqOrmObject*>(model->get(indexOfObject));
-            Q_CHECK_PTR(oldObject);
-
-            //Установим для объекта параметры из запроса
-            //Будем использовать метод источника данных для объекта
-            QString error;
-            if(IqOrmSqlObjectDataSource::loadObjectFromSQLRecord(oldObject, query.record(), &error)) {
-                //Такой объект есть в модели и в выборке, значит удалять его не надо
-                objectsToRemove.removeOne(oldObject);
-            } else {
-                result.setError(tr("Load object from SQL Record for object with Id=%0 fauled. Error: %1.")
-                                .arg(objectId)
-                                .arg(error));
-                return result;
-            }
-        } else {
-            //Если не нашли объект с таким ид, то создадим новый объект
-            IqOrmObject *newObject = IqOrmPrivate::IqOrmModelPrivateAccessor::createChildObject(model);
-            Q_CHECK_PTR(newObject);
-
-            //Установим для объекта параметры из запроса
-            //Будем использовать метод источника данных для объекта
-            QString error;
-            if(IqOrmSqlObjectDataSource::loadObjectFromSQLRecord(newObject, query.record(), &error)) {
-                //Добавим новый объект в модель
-                IqOrmPrivate::IqOrmModelPrivateAccessor::append(model, newObject);
-            } else {
-                //Т.к. объект не загрузился, удалим его
-                delete newObject;
-                result.setError(tr("Load object from SQL Record for object with Id=%0 fauled. Error: %1.")
-                                .arg(objectId)
-                                .arg(error));
-                return result;
-            }
-        }
+        Q_ASSERT(ok);
+        modelValues << rawData;
     }
 
-    //Удалим из модели все объекты на удаление
-    foreach (IqOrmObject *objectToRemove, objectsToRemove) {
-        IqOrmPrivate::IqOrmModelPrivateAccessor::remove(model, objectToRemove);
-    }
+    qDebug() << "Walk " << time.elapsed() << " msec";
+
+    IqOrmPrivate::IqOrmModelPrivateAccessor::setObjectValues(model, modelValues);
+
+    qDebug() << "End " << time.elapsed() << " msec";
 
     return result;
 }

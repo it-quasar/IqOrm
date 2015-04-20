@@ -17,39 +17,22 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#ifndef IQORMOBJECTPRIVATEACCESSOR_H
-#define IQORMOBJECTPRIVATEACCESSOR_H
+#ifndef IQORMOBJECTRAWDATA_H
+#define IQORMOBJECTRAWDATA_H
 
-#include <QVariant>
+#include <QObject>
+#include <QHash>
 #include "iqorm_global.h"
+#include "iqormpropertydescription.h"
 
-class IqOrmObject;
-class IqOrmPropertyDescription;
-class IqOrmObjectRawData;
-
-namespace IqOrmPrivate {
-
-class IQORMSHARED_EXPORT IqOrmObjectPrivateAccessor
+class IQORMSHARED_EXPORT IqOrmObjectRawData
 {
 public:
-    static void setObjectId(IqOrmObject *object, const int id);
+    IqOrmObjectRawData();
+    ~IqOrmObjectRawData();
 
-    static void setVaules(IqOrmObject *object, const IqOrmObjectRawData &rawData);
-
-    static void updateObjectSourceProperites(IqOrmObject *object);
-
-    static void resetObject(IqOrmObject *object);
-
-    static QVariant sourcePropertyValue(const IqOrmObject *object,
-                                        const IqOrmPropertyDescription *propertyDescription);
-
-    static bool isObjectLoadedFromDataSource(const IqOrmObject *object);
-    static void setObjectIsLoadedFromDataSource(IqOrmObject *object,
-                                          bool isLoadedFromDataSource);
-
-    static bool isObjectSavedToDataSource(const IqOrmObject *object);
+    qint64 objectId;
+    QHash<const IqOrmPropertyDescription *, QVariant> values;
 };
 
-}
-
-#endif // IQORMOBJECTPRIVATEACCESSOR_H
+#endif // IQORMOBJECTRAWDATA_H

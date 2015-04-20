@@ -40,22 +40,12 @@ public:
 
     virtual IqOrmDataSourceOperationResult truncateModel(const IqOrmMetaModel *ormModel) Q_DECL_OVERRIDE;
 
-//    virtual QList<qint64> findObjects(const IqOrmModel *ormModel,
-//                                      const IqOrmAbstractFilter *filter,
-//                                      qint64 limit = -1,
-//                                      qint64 offset = 0,
-//                                      bool *ok = Q_NULLPTR,
-//                                      QString *errorMessage = Q_NULLPTR) const Q_DECL_OVERRIDE;
-
 private:
     IqOrmSqlDataSource* m_sqlDataSource;
 
     QString filterString(const IqOrmMetaModel *ormModel,
                          const IqOrmAbstractFilter *filter,
                          QVariantList *bindValues) const;
-
-//    QStringList referencingTableNames(const IqOrmModel *ormModel,
-//                                      const IqOrmAbstractFilter *filter) const;
 };
 
 #endif // IQORMSQLMODELDATASOURCE_H

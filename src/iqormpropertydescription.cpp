@@ -24,7 +24,6 @@ IqOrmPropertyDescription::IqOrmPropertyDescription(IqOrmMetaModel *parent) :
     QObject(parent),
     m_propertyName(""),
     m_targetStaticMetaObject(Q_NULLPTR),
-    m_metaPropertyIndex(-1),
     m_notNull(false),
     m_readOnly(false)
 {
@@ -38,11 +37,15 @@ QObject *IqOrmPropertyDescription::lastPropertyObject(const QObject *object) con
 {
     Q_CHECK_PTR(object);
 
-    QStringList propertyPath = propertyName().split(".");
-
     QObject *lastObject = const_cast<QObject *>(object);
-    for (int i = 0; i < propertyPath.count() - 1; i++) {
-        lastObject = lastObject->property(propertyPath[i].toLocal8Bit().constData()).value<QObject *>();
+    for (int i = 0; i < m_propertyPath.count() - 1; i++) {
+        lastObject = lastObject->property(m_propertyPath[i].toLocal8Bit().constData()).value<QObject *>();
+        Q_ASSERT_X(lastObject,
+                   Q_FUNC_INFO,
+                   tr("Not found object in propery \"%0\" of class \"%1\".")
+                   .arg(propertyName())
+                   .arg(m_targetStaticMetaObject->className())
+                   .toLocal8Bit().constData());
     }
 
     return lastObject;
@@ -55,7 +58,10 @@ void IqOrmPropertyDescription::setPropertyName(const QString &name)
         m_propertyName = name;
 
         emit propertyNameChanged();
-        updateMetaPropertyIndex();
+        updateMetaProperty();
+
+        m_propertyPath = m_propertyName.split('.');
+        m_lastPropertyName = m_propertyPath.last();
     }
 }
 
@@ -63,20 +69,20 @@ void IqOrmPropertyDescription::setTargetStaticMetaObject(const QMetaObject *targ
 {
     if (m_targetStaticMetaObject != targetStaticMetaObject) {
         m_targetStaticMetaObject = targetStaticMetaObject;
-        updateMetaPropertyIndex();
+        updateMetaProperty();
     }
 }
 
 QMetaProperty IqOrmPropertyDescription::targetStaticMetaPropery() const
 {
-    Q_CHECK_PTR(m_targetStaticMetaObject);
-    return m_targetStaticMetaObject->property(m_metaPropertyIndex);
+    return m_targetStaticMetaProperty;
 }
 
-void IqOrmPropertyDescription::updateMetaPropertyIndex()
+void IqOrmPropertyDescription::updateMetaProperty()
 {
     if (m_targetStaticMetaObject) {
-        m_metaPropertyIndex = m_targetStaticMetaObject->indexOfProperty(m_propertyName.toLocal8Bit().constData());
+        int index = m_targetStaticMetaObject->indexOfProperty(m_propertyName.toLocal8Bit().constData());
+        m_targetStaticMetaProperty = m_targetStaticMetaObject->property(index);
     }
 }
 bool IqOrmPropertyDescription::readOnly() const
@@ -110,12 +116,13 @@ QVariant IqOrmPropertyDescription::value(const IqOrmObject *object) const
     Q_CHECK_PTR(object);
     const QObject *qobject = dynamic_cast<const QObject*>(object);
     Q_CHECK_PTR(qobject);
+
+    if (m_propertyPath.count() == 1)
+        return m_targetStaticMetaProperty.read(qobject);
+
     const QObject *lastPropObj = lastPropertyObject(qobject);
     Q_CHECK_PTR (lastPropObj);
-
-    QString lastPropName = propertyName().split('.').last();
-
-    return lastPropObj->property(lastPropName.toLocal8Bit().constData());
+    return lastPropObj->property(m_lastPropertyName.toLocal8Bit().constData());
 }
 
 bool IqOrmPropertyDescription::setValue(IqOrmObject *object, const QVariant &value) const
@@ -123,10 +130,11 @@ bool IqOrmPropertyDescription::setValue(IqOrmObject *object, const QVariant &val
     Q_CHECK_PTR(object);
     QObject *qobject = dynamic_cast<QObject*>(object);
     Q_CHECK_PTR(qobject);
+
+    if (m_propertyPath.count() == 1)
+        return m_targetStaticMetaProperty.write(qobject, value);
+
     QObject *lastPropObj = lastPropertyObject(qobject);
     Q_CHECK_PTR (lastPropObj);
-
-    QString lastPropName = propertyName().split('.').last();
-
-    return lastPropObj->setProperty(lastPropName.toLocal8Bit().constData(), value);
+    return lastPropObj->setProperty(m_lastPropertyName.toLocal8Bit().constData(), value);
 }

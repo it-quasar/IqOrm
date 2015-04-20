@@ -32,6 +32,7 @@
 #include "iqormerror.h"
 
 #include "iqormdatasourceoperationresult.h"
+#include "iqormobjectrawdata.h"
 
 #include <QSqlQuery>
 #include <QDebug>
@@ -44,111 +45,136 @@ IqOrmSqlObjectDataSource::IqOrmSqlObjectDataSource(IqOrmSqlDataSource *sqlDataSo
     m_propertyDescriptionsProcessor->setSqlDataSource(m_sqlDataSource);
 }
 
-bool IqOrmSqlObjectDataSource::loadObjectFromSQLRecord(IqOrmObject *object,
-                                                       const QSqlRecord &record,
+bool IqOrmSqlObjectDataSource::loadObjectFromSqlQuery(IqOrmObject *object,
+                                                       const QSqlQuery &query,
                                                        QString *error)
 {
-    if (error)
-        *error = "";
-
-    Q_CHECK_PTR(object);
-
-    const IqOrmMetaModel *ormModel = object->ormMetaModel();
-    if (!ormModel) {
-        resetObject(object);
-        if (error)
-            *error = tr("Not found valid object ORM model.");
+    bool ok;
+    IqOrmObjectRawData rawData = createRawDataForObjectFromSqlQuery(object->ormMetaModel(), query, &ok, error);
+    if (ok)
         return false;
-    }
+
+    IqOrmPrivate::IqOrmObjectPrivateAccessor::setVaules(object, rawData);
+    return true;
+}
+
+IqOrmObjectRawData IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(const IqOrmMetaModel *objectOrmMetaModel,
+                                                                                 const QSqlQuery &query,
+                                                                                 bool *ok,
+                                                                                 QString *error)
+{
+    Q_CHECK_PTR(objectOrmMetaModel);
+
+    IqOrmObjectRawData rawData;
+    QHash<const IqOrmPropertyDescription *, QVariant> values;
 
     int i = 0;
-    foreach (const IqOrmPropertyDescription *propDescription, ormModel->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propDescription, objectOrmMetaModel->propertyDescriptions()) {
         i++;
-        if (!propDescription)
-            continue;
+        Q_CHECK_PTR(propDescription);
 
         //Получаем значение из записи для свойства
         //Свойства в выборке должны идти в том же порядке, что и свойства в модели, со смещением на 1
         //т.к. первым свойством в выборке будет objectId, который не перечислен в модели
         //Поэтому будем использовать индексы для получения свойств с целью оптимизации скорости
-        QVariant value = record.value(i);
-        if (!value.isValid())
-            continue;
+        QVariant value = query.value(i);
+        Q_ASSERT(value.isValid());
 
         //Устанавливаем значение
         switch (propDescription->storedValue()) {
         case IqOrmPropertyDescription::Direct: {
-            propDescription->setValue(object, value);
+            values[propDescription] = value;
             break;
         }
         case IqOrmPropertyDescription::ObjectPointer: {
-            const IqOrmOneObjectDescribingPropertyDescription *oneObjectDescribingPropertyDescription
-                    = dynamic_cast<const IqOrmOneObjectDescribingPropertyDescription *>(propDescription);
-            Q_CHECK_PTR(oneObjectDescribingPropertyDescription);
-            if (!setPropertyValueFromObjectId(oneObjectDescribingPropertyDescription,
-                                              object,
-                                              value)) {
+            if (value.canConvert<qint32>()) {
+                values[propDescription] = value;
+            } else {
                 if (error)
                     *error = tr("Error convert value %0 to qint64 for property %1.")
-                            .arg(value.toString())
-                            .arg(propDescription->propertyName());
-                return false;
+                        .arg(value.toString())
+                        .arg(propDescription->propertyName());
+                if (ok)
+                    *ok = false;
+                return rawData;
             }
             break;
         }
         case IqOrmPropertyDescription::ObjectPointerList: {
-            const IqOrmManyObjectDescribingPropertyDescription *manyObjectDescribingPropertyDescription
-                    = dynamic_cast<const IqOrmManyObjectDescribingPropertyDescription *>(propDescription);
-            Q_CHECK_PTR(manyObjectDescribingPropertyDescription);
-            if (!setPropertyValueFromObjectIds(manyObjectDescribingPropertyDescription,
-                                               object,
-                                               value)) {
+            if (value.canConvert<QString>()) {
+                QString objectIdsString = value.toString();
+                QStringList objectIdsStringList = objectIdsString.split(',', QString::SkipEmptyParts);
+
+                QVariantList objectIdsVariantList;
+                foreach (const QString &string, objectIdsStringList) {
+                    qint64 objectId = string.toLongLong(ok);
+                    if (!ok) {
+                        if (error)
+                            *error = tr("Error convert value %0 to QList<qint64> for property %1.")
+                                .arg(value.toString())
+                                .arg(propDescription->propertyName());
+                        if (ok)
+                            *ok = false;
+                        return rawData;
+                    }
+                    objectIdsVariantList << objectId;
+                }
+                values[propDescription] = objectIdsVariantList;
+            } else {
                 if (error)
                     *error = tr("Error convert value %0 to QList<qint64> for property %1.")
                         .arg(value.toString())
                         .arg(propDescription->propertyName());
-                return false;
+                if (ok)
+                    *ok = false;
+                return rawData;
             }
             break;
         }
         }
     }
 
-    IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, record.value(0).toInt());
+    rawData.values = values;
+    rawData.objectId = query.value(0).toInt();
 
-    return true;
+    if (error)
+        *error = "";
+    if (ok)
+        *ok = true;
+
+    return rawData;
 }
 
-bool IqOrmSqlObjectDataSource::setPropertyValueFromObjectId(const IqOrmOneObjectDescribingPropertyDescription *propertyDescription,
-                                                            IqOrmObject *object,
-                                                            const QVariant &objectId)
-{
-    Q_CHECK_PTR(propertyDescription);
-    return propertyDescription->setValueFromObjectId(object, objectId);
-}
+//bool IqOrmSqlObjectDataSource::setPropertyValueFromObjectId(const IqOrmOneObjectDescribingPropertyDescription *propertyDescription,
+//                                                            IqOrmObject *object,
+//                                                            const QVariant &objectId)
+//{
+//    Q_CHECK_PTR(propertyDescription);
+//    return propertyDescription->setValueFromObjectId(object, objectId);
+//}
 
-bool IqOrmSqlObjectDataSource::setPropertyValueFromObjectIds(const IqOrmManyObjectDescribingPropertyDescription *propertyDescription,
-                                                             IqOrmObject *object,
-                                                             const QVariant &objectIds)
-{
-    Q_CHECK_PTR(propertyDescription);
+//bool IqOrmSqlObjectDataSource::setPropertyValueFromObjectIds(const IqOrmManyObjectDescribingPropertyDescription *propertyDescription,
+//                                                             IqOrmObject *object,
+//                                                             const QVariant &objectIds)
+//{
+//    Q_CHECK_PTR(propertyDescription);
 
-    if (!objectIds.canConvert(QVariant::String))
-        return false;
-    QString objectIdsString = objectIds.toString();
-    QStringList objectIdsStringList = objectIdsString.split(',', QString::SkipEmptyParts);
+//    if (!objectIds.canConvert(QVariant::String))
+//        return false;
+//    QString objectIdsString = objectIds.toString();
+//    QStringList objectIdsStringList = objectIdsString.split(',', QString::SkipEmptyParts);
 
-    QVariantList objectIdsVariantList;
-    foreach (const QString &string, objectIdsStringList) {
-        bool ok;
-        qint64 objectId = string.toLongLong(&ok);
-        if (!ok)
-            return false;
-        objectIdsVariantList << objectId;
-    }
+//    QVariantList objectIdsVariantList;
+//    foreach (const QString &string, objectIdsStringList) {
+//        bool ok;
+//        qint64 objectId = string.toLongLong(&ok);
+//        if (!ok)
+//            return false;
+//        objectIdsVariantList << objectId;
+//    }
 
-    return propertyDescription->setValueFromObjectIds(object, objectIdsVariantList);
-}
+//    return propertyDescription->setValueFromObjectIds(object, objectIdsVariantList);
+//}
 
 QString IqOrmSqlObjectDataSource::generateSelectQuery(const IqOrmMetaModel *ormModel) const
 {
@@ -256,7 +282,7 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::loadObjectById(IqOrmObj
     }
 
     //Загрузим данные в объект из первой записи
-    if (!loadObjectFromSQLRecord(object, query.record(), &error)) {
+    if (!loadObjectFromSqlQuery(object, query, &error)) {
         resetObject(object);
         result.setError(error);
         return result;

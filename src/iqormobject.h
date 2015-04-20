@@ -117,6 +117,7 @@ class IqOrmSqlDataSource;
 class IqOrmLocalSynchronizer;
 class IqOrmMetaModel;
 class IqOrmError;
+class IqOrmObjectRawData;
 
 class IQORMSHARED_EXPORT IqOrmObject
 {
@@ -215,6 +216,8 @@ private:
     void setIsLoadedFromDataSource(bool isLoadedFromDataSource);
 
     bool isSavedToDataSource() const;
+
+    void setValues(const IqOrmObjectRawData &values);
 
 private:
     qint64 m_objectId;

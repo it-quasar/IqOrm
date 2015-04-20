@@ -27,15 +27,7 @@ namespace IqOrmPrivate {
 class IqOrmModelPrivateAccessor
 {
 public:
-    static void append(IqOrmBaseModel *model, IqOrmObject* object);
-
-    static void insert(IqOrmBaseModel *model, int row, IqOrmObject* object);
-
-    static void remove(IqOrmBaseModel *model, IqOrmObject* object);
-
-    static void clear(IqOrmBaseModel *model);
-
-    static IqOrmObject *createChildObject(IqOrmBaseModel *model);
+    static void setObjectValues(IqOrmBaseModel *model, const QList<IqOrmObjectRawData> &objectValues);
 };
 
 }

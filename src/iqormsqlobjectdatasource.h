@@ -24,12 +24,13 @@
 
 #include "iqorm_global.h"
 #include <QSqlRecord>
-#include <QSqlDriver>
+#include <QSqlQuery>
 #include <QVariant>
 
 class IqOrmSqlDataSource;
 class IqOrmPropertyDescription;
 class IqOrmMetaModel;
+class IqOrmObjectRawData;
 class IqOrmSqlPropertyDescriptionsProcessor;
 class IqOrmOneObjectDescribingPropertyDescription;
 class IqOrmManyObjectDescribingPropertyDescription;
@@ -51,17 +52,22 @@ public:
 private:
     friend class IqOrmSqlModelDataSource;
 
-    static bool loadObjectFromSQLRecord(IqOrmObject* object,
-                                        const QSqlRecord &record,
-                                        QString *error);
+    static bool loadObjectFromSqlQuery(IqOrmObject* object,
+                                        const QSqlQuery &query,
+                                        QString *error = Q_NULLPTR);
 
-    static bool setPropertyValueFromObjectId(const IqOrmOneObjectDescribingPropertyDescription *propertyDescription,
-                                             IqOrmObject *object,
-                                             const QVariant &objectId);
+    static IqOrmObjectRawData createRawDataForObjectFromSqlQuery(const IqOrmMetaModel *objectOrmMetaModel,
+                                                                  const QSqlQuery &query,
+                                                                  bool *ok = Q_NULLPTR,
+                                                                  QString *error = Q_NULLPTR);
 
-    static bool setPropertyValueFromObjectIds(const IqOrmManyObjectDescribingPropertyDescription *propertyDescription,
-                                              IqOrmObject *object,
-                                              const QVariant &objectIds);
+//    static bool setPropertyValueFromObjectId(const IqOrmOneObjectDescribingPropertyDescription *propertyDescription,
+//                                             IqOrmObject *object,
+//                                             const QVariant &objectId);
+
+//    static bool setPropertyValueFromObjectIds(const IqOrmManyObjectDescribingPropertyDescription *propertyDescription,
+//                                              IqOrmObject *object,
+//                                              const QVariant &objectIds);
 
 
     QString generateSelectQuery(const IqOrmMetaModel *ormModel) const;

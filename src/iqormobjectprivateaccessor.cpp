@@ -19,6 +19,7 @@
 
 #include "iqormobjectprivateaccessor.h"
 #include "iqormobject.h"
+#include "iqormobjectrawdata.h"
 
 namespace IqOrmPrivate {
 
@@ -26,6 +27,12 @@ void IqOrmObjectPrivateAccessor::setObjectId(IqOrmObject *object, const int id)
 {
     Q_CHECK_PTR(object);
     object->setObjectId(id);
+}
+
+void IqOrmObjectPrivateAccessor::setVaules(IqOrmObject *object, const IqOrmObjectRawData &rawData)
+{
+    Q_CHECK_PTR(object);
+    object->setValues(rawData);
 }
 
 void IqOrmObjectPrivateAccessor::updateObjectSourceProperites(IqOrmObject *object)

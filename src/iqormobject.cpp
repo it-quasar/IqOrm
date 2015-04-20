@@ -25,6 +25,7 @@
 #include "iqormabstractobjectdatasource.h"
 #include "iqormmetamodel.h"
 #include "iqormabstracttriggers.h"
+#include "iqormobjectrawdata.h"
 #include <QPointer>
 #include <QDebug>
 
@@ -405,4 +406,38 @@ void IqOrmObject::setIsLoadedFromDataSource(bool isLoadedFromDataSource)
 bool IqOrmObject::isSavedToDataSource() const
 {
     return objectId() != -1;
+}
+
+void IqOrmObject::setValues(const IqOrmObjectRawData &rawData)
+{
+    foreach (const IqOrmPropertyDescription *propDescription, ormMetaModel()->propertyDescriptions()) {
+        Q_CHECK_PTR(propDescription);
+        Q_ASSERT(rawData.values.contains(propDescription));
+
+        //Устанавливаем значение
+        switch (propDescription->storedValue()) {
+        case IqOrmPropertyDescription::Direct: {
+            propDescription->setValue(this, rawData.values[propDescription]);
+            break;
+        }
+        case IqOrmPropertyDescription::ObjectPointer: {
+            const IqOrmOneObjectDescribingPropertyDescription *oneObjectDescribingPropertyDescription
+                    = dynamic_cast<const IqOrmOneObjectDescribingPropertyDescription *>(propDescription);
+            Q_CHECK_PTR(oneObjectDescribingPropertyDescription);
+            bool setResult = oneObjectDescribingPropertyDescription->setValueFromObjectId(this, rawData.values[propDescription].toLongLong());
+            Q_ASSERT(setResult);
+            break;
+        }
+        case IqOrmPropertyDescription::ObjectPointerList: {
+            const IqOrmManyObjectDescribingPropertyDescription *manyObjectDescribingPropertyDescription
+                    = dynamic_cast<const IqOrmManyObjectDescribingPropertyDescription *>(propDescription);
+            Q_CHECK_PTR(manyObjectDescribingPropertyDescription);
+            bool setResult = manyObjectDescribingPropertyDescription->setValueFromObjectIds(this, rawData.values[propDescription].toList());
+            Q_ASSERT(setResult);
+            break;
+        }
+        }
+    }
+
+    setObjectId(rawData.objectId);
 }
