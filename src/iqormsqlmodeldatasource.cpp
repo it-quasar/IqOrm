@@ -164,7 +164,6 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
     QList<IqOrmObjectRawData> modelValues;
     //Пройдемся по всем записям
     while (query.next()) {
-        bool ok;
         IqOrmObjectRawData rawData = IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(ormModel, query, &ok);
 
         Q_ASSERT(ok);

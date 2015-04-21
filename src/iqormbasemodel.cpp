@@ -52,6 +52,8 @@ IqOrmBaseModel::IqOrmBaseModel(QObject *parent) :
 
 IqOrmBaseModel::~IqOrmBaseModel()
 {
+    qDeleteAll(m_objectRows.keys());
+    qDeleteAll(m_items);
 }
 
 QObject *IqOrmBaseModel::get(int row) const
@@ -355,7 +357,10 @@ void IqOrmBaseModel::setObjectsValues(const QList<IqOrmObjectRawData> &objectVal
         IqOrmModelItem *item = objectsToRemove[i];
         Q_CHECK_PTR(item);
         objectRows[item] = i;
-        objectIdsRows[item->rawData.objectId] = i;
+        if (item->object)
+            objectIdsRows[item->object->objectId()] = i;
+        else
+            objectIdsRows[item->rawData.objectId] = i;
     }
 
     //Пройдемся по всем записям
@@ -372,10 +377,11 @@ void IqOrmBaseModel::setObjectsValues(const QList<IqOrmObjectRawData> &objectVal
             Q_CHECK_PTR(item);
 
             //Установим для объекта параметры из запроса
-            item->rawData = rawData;
             if (item->object) {
                 IqOrmPrivate::IqOrmObjectPrivateAccessor::setVaules(item->object, rawData);
                 IqOrmPrivate::IqOrmObjectPrivateAccessor::updateObjectSourceProperites(item->object);
+            } else {
+                item->rawData = rawData;
             }
             //Такой объект есть в модели и в выборке, значит удалять его не надо
             objectsToRemove.removeOne(item);
@@ -471,6 +477,7 @@ void IqOrmBaseModel::createItemObject(IqOrmBaseModel::IqOrmModelItem *item) cons
         item->qobject = dynamic_cast<QObject *>(itemObject);
         if (m_childChangeMonitoring)
             enableChildMonitoring(item->object);
+        item->rawData = IqOrmObjectRawData();
     }
 }
 

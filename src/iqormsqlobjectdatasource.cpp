@@ -46,8 +46,8 @@ IqOrmSqlObjectDataSource::IqOrmSqlObjectDataSource(IqOrmSqlDataSource *sqlDataSo
 }
 
 bool IqOrmSqlObjectDataSource::loadObjectFromSqlQuery(IqOrmObject *object,
-                                                       const QSqlQuery &query,
-                                                       QString *error)
+                                                      const QSqlQuery &query,
+                                                      QString *error)
 {
     bool ok;
     IqOrmObjectRawData rawData = createRawDataForObjectFromSqlQuery(object->ormMetaModel(), query, &ok, error);
@@ -59,14 +59,16 @@ bool IqOrmSqlObjectDataSource::loadObjectFromSqlQuery(IqOrmObject *object,
 }
 
 IqOrmObjectRawData IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(const IqOrmMetaModel *objectOrmMetaModel,
-                                                                                 const QSqlQuery &query,
-                                                                                 bool *ok,
-                                                                                 QString *error)
+                                                                                const QSqlQuery &query,
+                                                                                bool *ok,
+                                                                                QString *error)
 {
+    //Запрос должен быть обязательно позиционирован на нужной записи!!!
+
     Q_CHECK_PTR(objectOrmMetaModel);
 
     IqOrmObjectRawData rawData;
-    QHash<const IqOrmPropertyDescription *, QVariant> values;
+    rawData.objectId = query.value(0).toInt();
 
     int i = 0;
     foreach (const IqOrmPropertyDescription *propDescription, objectOrmMetaModel->propertyDescriptions()) {
@@ -83,12 +85,12 @@ IqOrmObjectRawData IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(
         //Устанавливаем значение
         switch (propDescription->storedValue()) {
         case IqOrmPropertyDescription::Direct: {
-            values[propDescription] = value;
+            rawData.values[propDescription] = value;
             break;
         }
         case IqOrmPropertyDescription::ObjectPointer: {
             if (value.canConvert<qint32>()) {
-                values[propDescription] = value;
+                rawData.values[propDescription] = value;
             } else {
                 if (error)
                     *error = tr("Error convert value %0 to qint64 for property %1.")
@@ -119,7 +121,7 @@ IqOrmObjectRawData IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(
                     }
                     objectIdsVariantList << objectId;
                 }
-                values[propDescription] = objectIdsVariantList;
+                rawData.values[propDescription] = objectIdsVariantList;
             } else {
                 if (error)
                     *error = tr("Error convert value %0 to QList<qint64> for property %1.")
@@ -134,9 +136,6 @@ IqOrmObjectRawData IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(
         }
     }
 
-    rawData.values = values;
-    rawData.objectId = query.value(0).toInt();
-
     if (error)
         *error = "";
     if (ok)
@@ -144,37 +143,6 @@ IqOrmObjectRawData IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(
 
     return rawData;
 }
-
-//bool IqOrmSqlObjectDataSource::setPropertyValueFromObjectId(const IqOrmOneObjectDescribingPropertyDescription *propertyDescription,
-//                                                            IqOrmObject *object,
-//                                                            const QVariant &objectId)
-//{
-//    Q_CHECK_PTR(propertyDescription);
-//    return propertyDescription->setValueFromObjectId(object, objectId);
-//}
-
-//bool IqOrmSqlObjectDataSource::setPropertyValueFromObjectIds(const IqOrmManyObjectDescribingPropertyDescription *propertyDescription,
-//                                                             IqOrmObject *object,
-//                                                             const QVariant &objectIds)
-//{
-//    Q_CHECK_PTR(propertyDescription);
-
-//    if (!objectIds.canConvert(QVariant::String))
-//        return false;
-//    QString objectIdsString = objectIds.toString();
-//    QStringList objectIdsStringList = objectIdsString.split(',', QString::SkipEmptyParts);
-
-//    QVariantList objectIdsVariantList;
-//    foreach (const QString &string, objectIdsStringList) {
-//        bool ok;
-//        qint64 objectId = string.toLongLong(&ok);
-//        if (!ok)
-//            return false;
-//        objectIdsVariantList << objectId;
-//    }
-
-//    return propertyDescription->setValueFromObjectIds(object, objectIdsVariantList);
-//}
 
 QString IqOrmSqlObjectDataSource::generateSelectQuery(const IqOrmMetaModel *ormModel) const
 {

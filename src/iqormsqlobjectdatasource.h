@@ -53,22 +53,13 @@ private:
     friend class IqOrmSqlModelDataSource;
 
     static bool loadObjectFromSqlQuery(IqOrmObject* object,
-                                        const QSqlQuery &query,
-                                        QString *error = Q_NULLPTR);
+                                       const QSqlQuery &query,
+                                       QString *error = Q_NULLPTR);
 
     static IqOrmObjectRawData createRawDataForObjectFromSqlQuery(const IqOrmMetaModel *objectOrmMetaModel,
-                                                                  const QSqlQuery &query,
-                                                                  bool *ok = Q_NULLPTR,
-                                                                  QString *error = Q_NULLPTR);
-
-//    static bool setPropertyValueFromObjectId(const IqOrmOneObjectDescribingPropertyDescription *propertyDescription,
-//                                             IqOrmObject *object,
-//                                             const QVariant &objectId);
-
-//    static bool setPropertyValueFromObjectIds(const IqOrmManyObjectDescribingPropertyDescription *propertyDescription,
-//                                              IqOrmObject *object,
-//                                              const QVariant &objectIds);
-
+                                                                 const QSqlQuery &query,
+                                                                 bool *ok = Q_NULLPTR,
+                                                                 QString *error = Q_NULLPTR);
 
     QString generateSelectQuery(const IqOrmMetaModel *ormModel) const;
 
