@@ -4,6 +4,13 @@ set (PROJECT IqOrm)
 set (VERSION "0.8.0")
 string (TOLOWER ${PROJECT} TARGET)
 
+option (IqOrm_DEBUG_MODE_ENABLED "Enable IrOrm debug mode" OFF)
+
+set (IqOrm_FOUND ON CACHE BOOL "True if headers and requested libraries were found")
+set (IqOrm_VERSION ${VERSION} CACHE STRING "IqOrm version")
+set (IqOrm_LIBRARIES ${TARGET} CACHE STRING "IqOrm component libraries to be linked")
+set (IqOrm_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src" CACHE STRING "IqOrm include directories")
+
 project (${PROJECT})
 
 set (CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -37,4 +44,8 @@ elseif (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_COMPILER_IS_GNUCC)
     add_definitions (-Wall -pedantic)
 else ()
     message ("Unknown compiler")
+endif ()
+
+if (IqOrm_DEBUG_MODE_ENABLED)
+    add_definitions (-DIQORM_DEBUG_MODE)
 endif ()

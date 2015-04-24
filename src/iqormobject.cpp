@@ -217,7 +217,7 @@ bool IqOrmObject::save(bool autoTransaction)
     }
     case IqOrmAbstractTriggers::Update: {
         if (propertiesToSave.isEmpty()) {
-            qDebug() << QObject::tr("Call save() for an object that has not changed.");
+            qDebug() << QObject::tr("Call save() for an object that has no changes.");
             return true;
         }
 
@@ -425,6 +425,7 @@ void IqOrmObject::setValues(const IqOrmObjectRawData &rawData)
                     = dynamic_cast<const IqOrmOneObjectDescribingPropertyDescription *>(propDescription);
             Q_CHECK_PTR(oneObjectDescribingPropertyDescription);
             bool setResult = oneObjectDescribingPropertyDescription->setValueFromObjectId(this, rawData.values[propDescription].toLongLong());
+            Q_UNUSED(setResult);
             Q_ASSERT(setResult);
             break;
         }
@@ -433,6 +434,7 @@ void IqOrmObject::setValues(const IqOrmObjectRawData &rawData)
                     = dynamic_cast<const IqOrmManyObjectDescribingPropertyDescription *>(propDescription);
             Q_CHECK_PTR(manyObjectDescribingPropertyDescription);
             bool setResult = manyObjectDescribingPropertyDescription->setValueFromObjectIds(this, rawData.values[propDescription].toList());
+            Q_UNUSED(setResult);
             Q_ASSERT(setResult);
             break;
         }

@@ -57,11 +57,11 @@ public:
     virtual const IqOrmMetaModel * childsOrmMetaModel() const = 0;
 
 
-    Q_INVOKABLE virtual QObject *get(int row) const;
+    Q_INVOKABLE virtual QObject *get(int row);
 
-    Q_INVOKABLE virtual QObject *first() const;
+    Q_INVOKABLE virtual QObject *first();
 
-    Q_INVOKABLE virtual QObject *last() const;
+    Q_INVOKABLE virtual QObject *last();
 
     virtual IqOrmObject *take(int row);
 
@@ -109,7 +109,7 @@ public:
 
     int rowOf(const IqOrmObject* object) const;
 
-    QList<IqOrmObject *> toObjectList() const;
+    QList<IqOrmObject *> toObjectList();
 
     IqOrmAbstractDataSource *lastDataSource() const;
 
@@ -188,7 +188,7 @@ private:
     void enableChildMonitoring(IqOrmObject *child) const;
     void disableChildMonitoring(IqOrmObject *child) const;
 
-    void createItemObject(IqOrmModelItem *item) const;
+    void createItemObject(IqOrmModelItem *item, qint64 row);
 
 private:
 

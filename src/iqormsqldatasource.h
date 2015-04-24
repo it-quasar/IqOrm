@@ -37,6 +37,7 @@ class IqOrmMetaModel;
 class IQORMSHARED_EXPORT IqOrmSqlDataSource : public IqOrmAbstractDataSource
 {
     Q_OBJECT
+    Q_ENUMS(Features)
 public:
     enum DatabaseType {
         Unknown,
@@ -47,11 +48,21 @@ public:
         SQLite
     };
 
+    enum Features {
+        ForeignKeys
+    };
+
     explicit IqOrmSqlDataSource(QObject *parent = Q_NULLPTR);
 
     virtual IqOrmSqlObjectDataSource *objectDataSource() const Q_DECL_OVERRIDE;
 
     virtual IqOrmSqlModelDataSource *objectsModelDataSource() const Q_DECL_OVERRIDE;
+
+    bool enableFeature(Features feature);
+
+    bool disableFeature(Features feature);
+
+    bool setFeature(Features feature, bool enabled = true);
 
     QSqlQuery execQuery(const QString &query,
                         bool *ok = Q_NULLPTR,
@@ -68,9 +79,9 @@ public:
                         bool *ok = Q_NULLPTR,
                         QString *errorText = Q_NULLPTR) const;
 
-    bool prepareQuery(QSqlQuery &query,
-                      const QString &prepareString,
-                      QString *errorText = Q_NULLPTR) const;
+    QSqlQuery prepareQuery(const QString &prepareString,
+                           bool *ok = Q_NULLPTR,
+                           QString *errorText = Q_NULLPTR) const;
 
     bool execPreparedQuery(QSqlQuery &query,
                            const QList<QVariant> bindValues = QList<QVariant>(),
@@ -107,7 +118,9 @@ private:
     friend class IqOrmSqlModelDataSource;
     friend class IqOrmSqlAbstractPropertyDescriptionProcessor;
 
-    bool openDB() const;
+    bool openDB(QString *error = Q_NULLPTR) const;
+
+    bool setForeignKeysFeature(bool enabled) const;
 
 private:
     mutable QSqlDatabase m_database;
@@ -122,6 +135,7 @@ private:
     QMutex m_transactionMutex;
 
     IqOrmSqlOperationTracerLog *m_tracerLog;
+    QHash<Features, bool> m_changedFeatures;
 };
 
 #endif // IQORMSQLDATASOURCE_H

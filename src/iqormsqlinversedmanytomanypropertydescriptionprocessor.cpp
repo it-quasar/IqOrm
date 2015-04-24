@@ -332,9 +332,10 @@ bool IqOrmSqlInversedManyToManyPropertyDescriptionProcessor::setOwner(QSet<qint6
     preparedQuery.append(")");
     preparedQuery.append("\n    VALUES (?, ?)");
 
-    QSqlQuery query;
+    bool ok;
     QString error;
-    if (!prepareQuery(query, preparedQuery, &error)) {
+    QSqlQuery query = prepareQuery(preparedQuery, &ok, &error);
+    if (!ok) {
         result->setError(error);
         return false;
     }

@@ -285,10 +285,10 @@ QSqlQuery IqOrmSqlAbstractPropertyDescriptionProcessor::execQuery(const QString 
     return sqlDataSource()->execQuery(prepareString, bindValues, forwardOnly, ok, errorText);
 }
 
-bool IqOrmSqlAbstractPropertyDescriptionProcessor::prepareQuery(QSqlQuery &query, const QString &prepareString, QString *errorText) const
+QSqlQuery IqOrmSqlAbstractPropertyDescriptionProcessor::prepareQuery(const QString &prepareString, bool *ok, QString *errorText) const
 {
     Q_CHECK_PTR(sqlDataSource());
-    return sqlDataSource()->prepareQuery(query, prepareString, errorText);
+    return sqlDataSource()->prepareQuery(prepareString, ok, errorText);
 }
 
 bool IqOrmSqlAbstractPropertyDescriptionProcessor::execPreparedQuery(QSqlQuery &query, const QList<QVariant> bindValues, QString *errorText) const

@@ -64,6 +64,40 @@ IqOrmSqlModelDataSource * IqOrmSqlDataSource::objectsModelDataSource() const
     return m_objectsModelDataSource;
 }
 
+bool IqOrmSqlDataSource::enableFeature(IqOrmSqlDataSource::Features feature)
+{
+    return setFeature(feature, true);
+}
+
+bool IqOrmSqlDataSource::disableFeature(IqOrmSqlDataSource::Features feature)
+{
+    return setFeature(feature, false);
+}
+
+bool IqOrmSqlDataSource::setFeature(IqOrmSqlDataSource::Features feature, bool enabled)
+{
+    Q_ASSERT_X(m_database.isValid(),
+               Q_FUNC_INFO,
+               "Set database first");
+
+    switch (feature) {
+    case ForeignKeys:
+        return setForeignKeysFeature(enabled);
+        break;
+    }
+
+#if defined(IQORM_DEBUG_MODE)
+    int indexOfFeaturesEnumator = staticMetaObject.indexOfEnumerator("Features");
+    Q_ASSERT(indexOfFeaturesEnumator != -1);
+    QMetaEnum enumator = staticMetaObject.enumerator(indexOfFeaturesEnumator);
+    qDebug("Future \"%s\" not support database with type \"%s\".",
+           enumator.key(feature),
+           m_database.driverName().toLocal8Bit().constData());
+#endif
+
+    return false;
+}
+
 QSqlQuery IqOrmSqlDataSource::execQuery(const QString &query, bool *ok, QString *errorText) const
 {
     Q_ASSERT(m_database.isValid());
@@ -71,24 +105,19 @@ QSqlQuery IqOrmSqlDataSource::execQuery(const QString &query, bool *ok, QString 
     QTime elapsedTime;
     elapsedTime.start();
 
-    if (ok)
-        *ok = false;
+    QString openDbError;
+    if (!openDB(&openDbError)) {
+        if (ok)
+            *ok = false;
+        if (errorText)
+            *errorText = openDbError;
+
+        tracerLog()->emitExecQuery(query, elapsedTime.elapsed(), false, openDbError);
+        return QSqlQuery(m_database);
+    }
 
     //Готовим запрос
     QSqlQuery sqlQuery (m_database);
-
-    if (!openDB()) {
-        QString error = tr("Can not open database \"%0\" on host \"%1:%2\" as \"%3\" with password \"*********\".")
-                .arg(m_database.databaseName())
-                .arg(m_database.hostName())
-                .arg(m_database.port())
-                .arg(m_database.userName());
-        if (errorText)
-            *errorText = error;
-
-        tracerLog()->emitExecQuery(query, elapsedTime.elapsed(), false, error);
-        return sqlQuery;
-    }
 
     bool result = sqlQuery.exec(query);
     if (ok)
@@ -97,6 +126,7 @@ QSqlQuery IqOrmSqlDataSource::execQuery(const QString &query, bool *ok, QString 
         *errorText = sqlQuery.lastError().text();
 
     tracerLog()->emitExecQuery(query, elapsedTime.elapsed(), result, sqlQuery.lastError().text());
+
     return sqlQuery;
 }
 
@@ -107,20 +137,15 @@ bool IqOrmSqlDataSource::openTransaction()
     m_transactionMutex.lock();
     Q_ASSERT_X(!m_transactionIsOpen, Q_FUNC_INFO, "Transaction already open.");
 
-    if (!openDB()) {
-        QString error = tr("Can not open database \"%0\" on host \"%1:%2\" as \"%3\" with password \"*********\".")
-                .arg(m_database.databaseName())
-                .arg(m_database.hostName())
-                .arg(m_database.port())
-                .arg(m_database.userName());
-
+    QString error;
+    if (!openDB(&error)) {
         tracerLog()->emitBeginTransaction(false, error);
         m_transactionMutex.unlock();
         return false;
     }
 
     bool result = m_database.transaction();
-    QString error = result?"":tr("Unable to begin transaction");
+    error = result?"":tr("Unable to begin transaction");
 
     tracerLog()->emitBeginTransaction(result, error);
 
@@ -140,6 +165,14 @@ bool IqOrmSqlDataSource::commitTransaction()
         return false;
     }
 
+    QString error;
+    if (!openDB(&error)) {
+        tracerLog()->emitCommitTransaction(false, error);
+        m_transactionIsOpen = false;
+        m_transactionMutex.unlock();
+        return false;
+    }
+
     bool result = m_database.commit();
 
     tracerLog()->emitCommitTransaction(result, m_database.lastError().text());
@@ -156,6 +189,14 @@ bool IqOrmSqlDataSource::rollbackTransaction()
     if (!m_transactionIsOpen) {
         QString error = tr("Transaction NOT open.");
         tracerLog()->emitRollbackTransaction(false, error);
+        return false;
+    }
+
+    QString error;
+    if (!openDB(&error)) {
+        tracerLog()->emitRollbackTransaction(false, error);
+        m_transactionIsOpen = false;
+        m_transactionMutex.unlock();
         return false;
     }
 
@@ -190,23 +231,103 @@ void IqOrmSqlDataSource::setDatabase(QSqlDatabase &database)
         m_databaseType = Unknown;
 
     m_sqlDriver = m_database.driver();
-    m_escapedIdFieldName = m_sqlDriver->escapeIdentifier("id", QSqlDriver::FieldName);
+
+    if (m_sqlDriver)
+        m_escapedIdFieldName = m_sqlDriver->escapeIdentifier("id", QSqlDriver::FieldName);
+
+    if (m_database.isValid()) {
+        //Установим все расширения по новой
+        QHashIterator<Features, bool> changedFeaturesI(m_changedFeatures);
+        while(changedFeaturesI.hasNext()) {
+            changedFeaturesI.next();
+            setFeature(changedFeaturesI.key(), changedFeaturesI.value());
+        }
+    }
 }
 
-bool IqOrmSqlDataSource::openDB() const
+bool IqOrmSqlDataSource::openDB(QString *error) const
 {
+    bool result = true;
+    QString errorText;
+
     if (!m_database.isValid()) {
-        qWarning() << "Database not valid. Use IQORMSQLDataSource::setDatabase() first.";
-        return false;
+        errorText = "Database not valid. Use IqOrmSqlDataSource::setDatabase() first.";
+        result = false;
+    } else if (!m_database.isOpen() && !m_database.open()) {
+        errorText = QString("Database open failed. SQL Error: \"%0\"")
+                .arg(m_database.lastError().text());
+        result = false;
     }
 
-    if (!m_database.isOpen() && !m_database.open()) {
-        qWarning() << QString("Database open failed. SQL Error: \"%0\"").arg(m_database.lastError().text());
-        return false;
+    if (!result) {
+        qWarning() << errorText;
+        if (error)
+            *error = tr("Can not open database \"%0\" on host \"%1:%2\" as \"%3\" with password \"*********\". Error: \"%4\".")
+                .arg(m_database.databaseName())
+                .arg(m_database.hostName())
+                .arg(m_database.port())
+                .arg(m_database.userName())
+                .arg(errorText);
+    } else {
+        if (error)
+            error->clear();
     }
 
-    return true;
+    return result;
 }
+
+bool IqOrmSqlDataSource::setForeignKeysFeature(bool enabled) const
+{
+    bool result;
+    switch (m_databaseType) {
+    case SQLite: {
+        QString query = QString("PRAGMA foreign_keys = %0;")
+                .arg(enabled?"ON":"OFF");
+
+        bool ok;
+        execQuery(query, &ok);
+        if (!ok)
+            result = false;
+        else {
+            query = "PRAGMA foreign_keys;";
+            QSqlQuery resultQuery =execQuery(query, &ok);
+            if (!ok)
+                result = false;
+            else {
+
+                if (!resultQuery.next()) {
+#if defined(IQORM_DEBUG_MODE)
+                    qWarning("\"PRAGMA foreign_keys\" not support with this SQLite version.");
+#endif
+                    result = false;
+                } else {
+                    if (enabled)
+                        result = resultQuery.value(0).toInt() == 1;
+                    else
+                        result = resultQuery.value(0).toInt() != 1;
+                }
+            }
+        }
+
+        break;
+    }
+    default:
+#if defined(IQORM_DEBUG_MODE)
+        qDebug("Feature \"ForeingKeys\" not support database with type \"%s\".",
+               m_database.driverName().toLocal8Bit().constData());
+#endif
+        return false;
+        break;
+    }
+
+#if defined(IQORM_DEBUG_MODE)
+    if (!result)
+        qWarning("Error. Set \"ForeignKeys\" feature fail.");
+#endif
+
+    return result;
+}
+
 IqOrmSqlOperationTracerLog *IqOrmSqlDataSource::tracerLog() const
 {
     return m_tracerLog;
@@ -246,11 +367,12 @@ QSqlQuery IqOrmSqlDataSource::execQuery(const QString &prepareString,
         *ok = false;
 
     //Готовим запрос
-    QSqlQuery query (m_database);
-    query.setForwardOnly(forwardOnly);
-
-    if (!prepareQuery(query, prepareString, errorText))
+    bool prepareOk;
+    QSqlQuery query = prepareQuery(prepareString, &prepareOk, errorText);
+    if (!prepareOk)
         return query;
+
+    query.setForwardOnly(forwardOnly);
 
     if (!execPreparedQuery(query, bindValues, errorText))
         return query;
@@ -261,42 +383,48 @@ QSqlQuery IqOrmSqlDataSource::execQuery(const QString &prepareString,
     return query;
 }
 
-bool IqOrmSqlDataSource::prepareQuery(QSqlQuery &query,
-                                      const QString &prepareString,
-                                      QString *errorText) const
+QSqlQuery IqOrmSqlDataSource::prepareQuery(const QString &prepareString,
+                                           bool *ok,
+                                           QString *errorText) const
 {
     Q_ASSERT(m_database.isValid());
 
     QTime elapsedTime;
     elapsedTime.start();
 
-    if (!openDB()) {
-        QString error = tr("Can not open database \"%0\" on host \"%1:%2\" as \"%3\" with password \"*********\".")
-                .arg(m_database.databaseName())
-                .arg(m_database.hostName())
-                .arg(m_database.port())
-                .arg(m_database.userName());
+    QString openDbError;
+    if (!openDB(&openDbError)) {
+        if (ok)
+            *ok = false;
         if (errorText)
-            *errorText = error;
+            *errorText = openDbError;
 
-        tracerLog()->emitPrepareQuery(prepareString, elapsedTime.elapsed(), false, error);
-        return false;
+        tracerLog()->emitPrepareQuery(prepareString, elapsedTime.elapsed(), false, openDbError);
+        return QSqlQuery(m_database);
     }
 
+    QSqlQuery query(m_database);
     //Если не удалось подготовить запрос, то выходим
     if (!query.prepare(prepareString)) {
         QString error = tr("Can not prepare SQL query \"%0\". \nSQL Engine return error: \"%1\".")
                 .arg(query.executedQuery())
                 .arg(query.lastError().text());
+        if (ok)
+            *ok = false;
         if (errorText)
             *errorText = error;
 
         tracerLog()->emitPrepareQuery(prepareString, elapsedTime.elapsed(), false, error);
-        return false;
+        return query;
     }
 
+    if (ok)
+        *ok = true;
+    if (errorText)
+        errorText->clear();
+
     tracerLog()->emitPrepareQuery(prepareString, elapsedTime.elapsed(), true, "");
-    return true;
+    return query;
 }
 
 bool IqOrmSqlDataSource::execPreparedQuery(QSqlQuery &query,
@@ -308,16 +436,11 @@ bool IqOrmSqlDataSource::execPreparedQuery(QSqlQuery &query,
     QTime elapsedTime;
     elapsedTime.start();
 
-    if (!openDB()) {
-        QString error = tr("Can not open database \"%0\" on host \"%1:%2\" as \"%3\" with password \"*********\".")
-                .arg(m_database.databaseName())
-                .arg(m_database.hostName())
-                .arg(m_database.port())
-                .arg(m_database.userName());
+    QString openDbError;
+    if (!openDB(&openDbError)) {
+        tracerLog()->emitExecPreparedQuery(bindValues, elapsedTime.elapsed(), false, openDbError);
         if (errorText)
-            *errorText = error;
-
-        tracerLog()->emitExecPreparedQuery(bindValues, elapsedTime.elapsed(), false, error);
+            *errorText = openDbError;
         return false;
     }
 

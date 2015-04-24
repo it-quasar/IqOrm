@@ -51,7 +51,7 @@ bool IqOrmSqlObjectDataSource::loadObjectFromSqlQuery(IqOrmObject *object,
 {
     bool ok;
     IqOrmObjectRawData rawData = createRawDataForObjectFromSqlQuery(object->ormMetaModel(), query, &ok, error);
-    if (ok)
+    if (!ok)
         return false;
 
     IqOrmPrivate::IqOrmObjectPrivateAccessor::setVaules(object, rawData);

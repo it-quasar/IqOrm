@@ -34,11 +34,11 @@ public:
 
     virtual const IqOrmMetaModel * childsOrmMetaModel() const Q_DECL_OVERRIDE;
 
-    virtual T *get(int row) const Q_DECL_OVERRIDE;
+    virtual T *get(int row) Q_DECL_OVERRIDE;
 
-    virtual T *first() const Q_DECL_OVERRIDE;
+    virtual T *first() Q_DECL_OVERRIDE;
 
-    virtual T *last() const Q_DECL_OVERRIDE;
+    virtual T *last() Q_DECL_OVERRIDE;
 
     virtual T *take(int row) Q_DECL_OVERRIDE;
 

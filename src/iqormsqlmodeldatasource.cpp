@@ -44,12 +44,16 @@ IqOrmSqlModelDataSource::IqOrmSqlModelDataSource(IqOrmSqlDataSource *sqlDataSour
 }
 
 IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel *model,
-                                                                         qint64 limit,
-                                                                         qint64 offset,
-                                                                         OrderBy orderBy)
+                                                                  qint64 limit,
+                                                                  qint64 offset,
+                                                                  OrderBy orderBy)
 {
-    QTime time;
-    time.start();
+#if defined(IQORM_DEBUG_MODE)
+    QTime elaplesTime;
+    elaplesTime.start();
+    qDebug("Ok. Start load model IqOrmModel<%s>.",
+           model->childsOrmMetaModel()->targetStaticMetaObject()->className());
+#endif
 
     IqOrmDataSourceOperationResult result;
     Q_CHECK_PTR(model);
@@ -126,10 +130,10 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
     QString orderStr;
     switch (orderBy) {
     case Asc:
-        orderStr = "\n    ORDER BY " + m_sqlDataSource->escapedIdFieldName() + " ASC ";
+        orderStr = "\n    ORDER BY " + m_sqlDataSource->escapedTableName(ormModel->tableName()) + "." + m_sqlDataSource->escapedIdFieldName() + " ASC ";
         break;
     case Desc:
-        orderStr = "\n    ORDER BY " + m_sqlDataSource->escapedIdFieldName() + " DESC ";
+        orderStr = "\n    ORDER BY " + m_sqlDataSource->escapedTableName(ormModel->tableName()) + "." + m_sqlDataSource->escapedIdFieldName() + " DESC ";
         break;
     }
 
@@ -149,17 +153,31 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
     //Добавим оффсет
     queryStr.append(offsetStr);
 
-    qDebug() << "Prepare " << time.elapsed() << " msec";
+#if defined(IQORM_DEBUG_MODE)
+    qDebug("Ok. Query for load model IqOrmModel<%s> prepared in %d msec.",
+           model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+           elaplesTime.elapsed());
+#endif
 
     QSqlQuery query = m_sqlDataSource->execQuery(queryStr, bindValues, true, &ok, &error);
+
+#if defined(IQORM_DEBUG_MODE)
+    if (ok)
+        qDebug("Ok. Query for load model IqOrmModel<%s> executed in %d msec.",
+               model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+               elaplesTime.elapsed());
+    else
+        qDebug("Error. Query for load model IqOrmModel<%s> executed in %d msec. Error: \"%s\".",
+               model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+               elaplesTime.elapsed(),
+               error.toLocal8Bit().constData());
+#endif
 
     if (!ok) {
         model->clear();
         result.setError(error);
         return result;
     }
-
-    qDebug() << "Exec " << time.elapsed() << " msec";
 
     QList<IqOrmObjectRawData> modelValues;
     //Пройдемся по всем записям
@@ -170,11 +188,19 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
         modelValues << rawData;
     }
 
-    qDebug() << "Walk " << time.elapsed() << " msec";
+#if defined(IQORM_DEBUG_MODE)
+    qDebug("Ok. Walking on query for load model IqOrmModel<%s> fineshed in %d msec.",
+           model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+           elaplesTime.elapsed());
+#endif
 
     IqOrmPrivate::IqOrmModelPrivateAccessor::setObjectValues(model, modelValues);
 
-    qDebug() << "End " << time.elapsed() << " msec";
+#if defined(IQORM_DEBUG_MODE)
+    qDebug("Ok. Load model IqOrmModel<%s> fineshed in %d msec.",
+           model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+           elaplesTime.elapsed());
+#endif
 
     return result;
 }

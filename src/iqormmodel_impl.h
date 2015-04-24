@@ -56,13 +56,13 @@ const IqOrmMetaModel* IqOrmModel<T>::childsOrmMetaModel() const
 
 
 template <class T>
-T * IqOrmModel<T>::get(int row) const
+T * IqOrmModel<T>::get(int row)
 {
     return qobject_cast<T *>(IqOrmBaseModel::get(row));
 }
 
 template <class T>
-T * IqOrmModel<T>::first() const
+T * IqOrmModel<T>::first()
 {
     if (rowCount() == 0)
         return Q_NULLPTR;
@@ -70,7 +70,7 @@ T * IqOrmModel<T>::first() const
 }
 
 template <class T>
-T * IqOrmModel<T>::last() const
+T * IqOrmModel<T>::last()
 {
     if (rowCount() == 0)
         return Q_NULLPTR;

@@ -125,9 +125,9 @@ protected:
                         bool *ok,
                         QString *errorText) const;
 
-    bool prepareQuery(QSqlQuery &query,
-                      const QString &prepareString,
-                      QString *errorText = Q_NULLPTR) const;
+    QSqlQuery prepareQuery(const QString &prepareString,
+                           bool *ok = Q_NULLPTR,
+                           QString *errorText = Q_NULLPTR) const;
 
     bool execPreparedQuery(QSqlQuery &query,
                            const QList<QVariant> bindValues = QList<QVariant>(),

@@ -314,9 +314,10 @@ bool IqOrmSqlManyToManyPropertyDescriptionProcessor::setOwner(QSet<qint64> owner
     preparedQuery.append(")");
     preparedQuery.append("\n    VALUES (?, ?)");
 
-    QSqlQuery query;
+    bool ok;
     QString error;
-    if (!prepareQuery(query, preparedQuery, &error)) {
+    QSqlQuery query = prepareQuery(preparedQuery, &ok, &error);
+    if (!ok) {
         result->setError(error);
         return false;
     }

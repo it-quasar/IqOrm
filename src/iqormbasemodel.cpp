@@ -56,13 +56,13 @@ IqOrmBaseModel::~IqOrmBaseModel()
     qDeleteAll(m_items);
 }
 
-QObject *IqOrmBaseModel::get(int row) const
+QObject *IqOrmBaseModel::get(int row)
 {
     if (row < 0 || row >= rowCount())
         return Q_NULLPTR;
 
     IqOrmModelItem *item = m_items[row];
-    createItemObject(item);
+    createItemObject(item, row);
     return item->qobject;
 }
 
@@ -111,14 +111,14 @@ void IqOrmBaseModel::setPropertyHeader(const QString &property, const QString &h
         emit headerDataChanged(Qt::Horizontal, m_visibleProperties.indexOf(property), m_visibleProperties.indexOf(property));
 }
 
-QObject *IqOrmBaseModel::first() const
+QObject *IqOrmBaseModel::first()
 {
     if (rowCount() == 0)
         return Q_NULLPTR;
     return get(0);
 }
 
-QObject *IqOrmBaseModel::last() const
+QObject *IqOrmBaseModel::last()
 {
     if (rowCount() == 0)
         return Q_NULLPTR;
@@ -286,11 +286,12 @@ bool IqOrmBaseModel::truncate(IqOrmAbstractDataSource *dataSource)
     return result;
 }
 
-QList<IqOrmObject *> IqOrmBaseModel::toObjectList() const
+QList<IqOrmObject *> IqOrmBaseModel::toObjectList()
 {
     QList<IqOrmObject *> result;
-    foreach (IqOrmModelItem *item, m_items) {
-        createItemObject(item);
+    for (int i = 0; i < rowCount(); ++i){
+        IqOrmModelItem *item = m_items[i];
+        createItemObject(item, i);
         result << item->object;
     }
     return result;
@@ -467,17 +468,20 @@ void IqOrmBaseModel::disableChildMonitoring(IqOrmObject *child) const
     disconnect(qobject, 0, this, 0);
 }
 
-void IqOrmBaseModel::createItemObject(IqOrmBaseModel::IqOrmModelItem *item) const
+void IqOrmBaseModel::createItemObject(IqOrmBaseModel::IqOrmModelItem *item, qint64 row)
 {
     Q_CHECK_PTR(item);
     if (!item->object) {
         IqOrmObject *itemObject = createChildObject();
         IqOrmPrivate::IqOrmObjectPrivateAccessor::setVaules(itemObject, item->rawData);
+        IqOrmPrivate::IqOrmObjectPrivateAccessor::updateObjectSourceProperites(itemObject);
         item->object = itemObject;
         item->qobject = dynamic_cast<QObject *>(itemObject);
         if (m_childChangeMonitoring)
             enableChildMonitoring(item->object);
         item->rawData = IqOrmObjectRawData();
+
+        m_objectRows.insert(const_cast<const IqOrmObject *>(item->object), row);
     }
 }
 
