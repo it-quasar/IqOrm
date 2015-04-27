@@ -34,6 +34,15 @@ void IqOrmLib::initialize()
     }
 }
 
+bool IqOrmLib::debugMode()
+{
+#if defined(IQORM_DEBUG_MODE)
+    return true;
+#else
+    return false;
+#endif
+}
+
 static void initializeIqOrmLib() {
     IqOrmLib::initialize();
 }

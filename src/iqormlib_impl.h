@@ -24,10 +24,14 @@
 #include "iqormobjectfactory.h"
 #include "iqormmetamodel.h"
 #include <QMetaType>
+#include <QDebug>
 
 template <class T>
 void IqOrmLib::ormModelIninitializator()
 {
+    if(IqOrmLib::debugMode())
+        qDebug("Run initialize IqOrmMetaModel for %s", T::staticMetaObject.className());
+
     IqOrmObjectFactory::registerClass<T>();
     T tempObject;
     const IqOrmMetaModel *staticMetaModel = T::staticOrmMetaModel();

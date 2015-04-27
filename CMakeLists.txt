@@ -2,9 +2,14 @@ cmake_minimum_required (VERSION 3.1.0 FATAL_ERROR)
 
 set (PROJECT IqOrm)
 set (VERSION "0.8.0")
-string (TOLOWER ${PROJECT} TARGET)
 
-option (IqOrm_DEBUG_MODE_ENABLED "Enable IrOrm debug mode" OFF)
+if (UNIX)
+    string (TOLOWER ${PROJECT} TARGET)
+else ()
+    set (TARGET ${PROJECT})
+endif ()
+
+#option (IqOrm_DEBUG_MODE_ENABLED "Enable IrOrm debug mode" OFF)
 
 set (IqOrm_FOUND ON CACHE BOOL "True if headers and requested libraries were found")
 set (IqOrm_VERSION ${VERSION} CACHE STRING "IqOrm version")
@@ -33,10 +38,11 @@ target_link_libraries (${TARGET} Qt5::Sql Qt5::Quick)
 set_target_properties (${TARGET} PROPERTIES
                        VERSION ${VERSION})
 
-install (TARGETS ${TARGET}
-         LIBRARY DESTINATION lib)
-
-target_compile_features (${TARGET} PRIVATE cxx_range_for)
+if (MINGW)
+    add_definitions(-std=c++11)
+else ()
+    target_compile_features (${TARGET} PRIVATE cxx_range_for)
+endif ()
 
 if (MSVC)
     add_definitions (/W4)
@@ -46,6 +52,6 @@ else ()
     message ("Unknown compiler")
 endif ()
 
-if (IqOrm_DEBUG_MODE_ENABLED)
+if (IqOrm_DEBUG_MODE)
     add_definitions (-DIQORM_DEBUG_MODE)
 endif ()

@@ -33,6 +33,8 @@ public:
     template <class T>
     static void scheduleOrmModelInitialization();
 
+    static bool debugMode();
+
 private:
     template <class T>
     static void ormModelIninitializator();

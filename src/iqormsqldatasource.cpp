@@ -214,21 +214,26 @@ void IqOrmSqlDataSource::setDatabase(QSqlDatabase &database)
 {
     m_database = database;
 
-    QString dbType = m_database.driverName();
-    if (dbType == QStringLiteral("QMYSQL"))
+    switch (m_database.driver()->dbmsType()) {
+    case QSqlDriver::MySqlServer:
         m_databaseType = MySQL;
-    else if (dbType == QStringLiteral("QSQLITE")
-             || dbType == QStringLiteral("QSQLITE2"))
+        break;
+    case QSqlDriver::SQLite:
         m_databaseType = SQLite;
-    else if (dbType == QStringLiteral("QPSQL"))
+        break;
+    case QSqlDriver::PostgreSQL:
         m_databaseType = PostgreSQL;
-    else if (dbType == QStringLiteral("QOCI"))
+        break;
+    case QSqlDriver::Oracle:
         m_databaseType = Oracle;
-    else if (dbType == QStringLiteral("QODBC"))
-        //Считаем, что это MSSQL
+        break;
+    case QSqlDriver::MSSqlServer:
         m_databaseType = MSSQL;
-    else
+        break;
+    default:
         m_databaseType = Unknown;
+        break;
+    }
 
     m_sqlDriver = m_database.driver();
 
