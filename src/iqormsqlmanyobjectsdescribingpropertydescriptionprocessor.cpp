@@ -134,18 +134,9 @@ bool IqOrmSqlManyObjectsDescribingPropertyDescriptionProcessor::preUpdate(IqOrmD
 
 bool IqOrmSqlManyObjectsDescribingPropertyDescriptionProcessor::preRemove(IqOrmDataSourceOperationResult *result) const
 {
-    bool ok;
-    QSet<qint64> ownerObjectIdsToRemove = ownerObjectIds(result, &ok);
-    if (!ok)
-        return false;
-
-    if (ownerObjectIdsToRemove.isEmpty()) {
-        Q_CHECK_PTR(result);
-        result->setError("");
-        return true;
-    }
-
-    return removeOwner(ownerObjectIdsToRemove, result);
+    Q_CHECK_PTR(result);
+    result->setError("");
+    return true;
 }
 
 bool IqOrmSqlManyObjectsDescribingPropertyDescriptionProcessor::postSelect(IqOrmDataSourceOperationResult *result) const
@@ -239,6 +230,16 @@ bool IqOrmSqlManyObjectsDescribingPropertyDescriptionProcessor::postUpdate(IqOrm
 
 bool IqOrmSqlManyObjectsDescribingPropertyDescriptionProcessor::postRemove(IqOrmDataSourceOperationResult *result) const
 {
-    result->setError("");
-    return true;
+    bool ok;
+    QSet<qint64> ownerObjectIdsToRemove = ownerObjectIds(result, &ok);
+    if (!ok)
+        return false;
+
+    if (ownerObjectIdsToRemove.isEmpty()) {
+        Q_CHECK_PTR(result);
+        result->setError("");
+        return true;
+    }
+
+    return removeOwner(ownerObjectIdsToRemove, result);
 }

@@ -125,12 +125,12 @@ QObject *IqOrmBaseModel::last()
     return get(rowCount() - 1);
 }
 
-bool IqOrmBaseModel::find(const QString &propertyName, IqOrmFilter::Operation operation, const QVariant &value, IqOrmAbstractDataSource *dataSource)
+bool IqOrmBaseModel::find(const QString &propertyName, IqOrmFilter::Condition operation, const QVariant &value, IqOrmAbstractDataSource *dataSource)
 {
     return find(propertyName, operation, value, Qt::CaseSensitive, dataSource);
 }
 
-bool IqOrmBaseModel::find(const QString &propertyName, IqOrmFilter::Operation operation, const QVariant &value, Qt::CaseSensitivity caseSensitivity, IqOrmAbstractDataSource *dataSource)
+bool IqOrmBaseModel::find(const QString &propertyName, IqOrmFilter::Condition operation, const QVariant &value, Qt::CaseSensitivity caseSensitivity, IqOrmAbstractDataSource *dataSource)
 {
     IqOrmFilter *filter = new IqOrmFilter(propertyName, operation, value, this);
     filter->setCaseSensitivity(caseSensitivity);
@@ -565,6 +565,36 @@ IqOrmObject *IqOrmBaseModel::take(IqOrmObject *object)
     return Q_NULLPTR;
 }
 
+QVariant IqOrmBaseModel::objectData(qint64 row, const QString &property) const
+{
+    Q_ASSERT(row > -1);
+    Q_ASSERT(row < rowCount());
+
+    IqOrmModelItem* item = m_items.at(row);
+    Q_CHECK_PTR(item);
+
+    Q_CHECK_PTR(childsOrmMetaModel());
+    if (property == QLatin1String("objectId")) {
+        if (item->object)
+            return item->object->objectId();
+        else
+            return item->rawData.objectId;
+    } else {
+        const IqOrmPropertyDescription *propetyDescription = childsOrmMetaModel()->propertyDescription(property);
+        Q_ASSERT_X(propetyDescription,
+                   Q_FUNC_INFO,
+                   tr("Description for property \"%0\" not found in IqOrmMetaModel for class \"%1\".")
+                   .arg(property)
+                   .arg(childsOrmMetaModel()->targetStaticMetaObject()->className()).toLocal8Bit().constData());
+        if (item->object)
+            return propetyDescription->value(item->object);
+        else
+            return item->rawData.values[propetyDescription];
+    }
+
+    return QVariant();
+}
+
 int IqOrmBaseModel::rowOf(const IqOrmObject *object) const
 {
     if (!m_objectRows.contains(object))
@@ -698,58 +728,37 @@ bool IqOrmBaseModel::moveRows(const QModelIndex &sourceParent, int sourceRow, in
 
 QVariant IqOrmBaseModel::data(const QModelIndex &index, int role) const
 {
+    if (role != Qt::DisplayRole
+            && role != Qt::EditRole
+            && role < FIRST_QML_ROLE)
+        return QVariant();
+
     int row = index.row();
     int column = index.column();
 
-    if (row >= rowCount() || row < 0)
-        return QVariant();
-
-    if (column >= columnCount() || column < 0)
-        return QVariant();
+    Q_ASSERT(row > -1);
+    Q_ASSERT(row < rowCount());
+    Q_ASSERT(column > -1);
+    Q_ASSERT(column < columnCount());
 
     QHash<int, QByteArray> qmlRoleNames = roleNames();
 
-    if (role >= FIRST_QML_ROLE + qmlRoleNames.count())
-        return QVariant();
+    Q_ASSERT(role < FIRST_QML_ROLE + qmlRoleNames.count());
 
     IqOrmModelItem* item = m_items.at(row);
     Q_CHECK_PTR(item);
 
     QString propertyName = "";
     if (role < FIRST_QML_ROLE) {
-        if (column < m_visibleProperties.count())
-            propertyName = m_visibleProperties[column];
+        Q_ASSERT(column < m_visibleProperties.count());
+        propertyName = m_visibleProperties[column];
     } else {
         propertyName = qmlRoleNames.value(role);
     }
 
-    if (propertyName.isEmpty())
-        return QVariant();
+    Q_ASSERT(!propertyName.isEmpty());
 
-    Q_CHECK_PTR(childsOrmMetaModel());
-    if (role == Qt::DisplayRole
-            || role == Qt::EditRole
-            || role > FIRST_QML_ROLE) {
-        if (propertyName == QLatin1String("objectId")) {
-            if (item->object)
-                return item->object->objectId();
-            else
-                return item->rawData.objectId;
-        } else {
-            const IqOrmPropertyDescription *propetyDescription = childsOrmMetaModel()->propertyDescription(propertyName);
-            Q_ASSERT_X(propetyDescription,
-                       Q_FUNC_INFO,
-                       tr("Description for property \"%0\" not found in IqOrmMetaModel for class \"%1\".")
-                       .arg(propertyName)
-                       .arg(childsOrmMetaModel()->targetStaticMetaObject()->className()).toLocal8Bit().constData());
-            if (item->object)
-                return propetyDescription->value(item->object);
-            else
-                return item->rawData.values[propetyDescription];
-        }
-    }
-
-    return QVariant();
+    return objectData(row, propertyName);
 }
 
 bool IqOrmBaseModel::setData(const QModelIndex &index, const QVariant &value, int role)

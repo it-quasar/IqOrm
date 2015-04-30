@@ -22,10 +22,13 @@
 
 #include "iqormabstractmodeldatasource.h"
 #include "iqorm_global.h"
+#include "iqormfilter.h"
 #include <QSqlDriver>
 
 class IqOrmAbstractFilter;
 class IqOrmSqlDataSource;
+class IqOrmDirectPropertyDescription;
+class IqOrmBaseManyToOnePropertyDescription;
 
 class IQORMSHARED_EXPORT IqOrmSqlModelDataSource : public IqOrmAbstractModelDataSource
 {
@@ -45,7 +48,35 @@ private:
 
     QString filterString(const IqOrmMetaModel *ormModel,
                          const IqOrmAbstractFilter *filter,
-                         QVariantList *bindValues) const;
+                         QVariantList *bindValues,
+                         bool *ok,
+                         QString *errorString) const;
+
+    QString simpleFilterString(const IqOrmMetaModel *ormModel,
+                               const IqOrmFilter *filter,
+                               QVariantList *bindValues,
+                               bool *ok,
+                               QString *errorString) const;
+
+    QString filterStringForDirectProperty(const IqOrmMetaModel *ormModel,
+                                         const IqOrmFilter *filter,
+                                         const IqOrmDirectPropertyDescription *propertyDesctiption,
+                                         QVariantList *bindValues,
+                                          bool *ok,
+                                          QString *errorString) const;
+
+    QString filterStringForManyToOneProperty(const IqOrmMetaModel *ormModel,
+                                             const IqOrmFilter *filter,
+                                             const IqOrmBaseManyToOnePropertyDescription *propertyDesctiption,
+                                             QVariantList *bindValues,
+                                             bool *ok,
+                                             QString *errorString) const;
+
+    QString columnCondition(const QString &columnName,
+                            const QString &propertyName,
+                            IqOrmFilter::Condition condition,
+                            bool *ok,
+                            QString *errorString) const;
 };
 
 #endif // IQORMSQLMODELDATASOURCE_H

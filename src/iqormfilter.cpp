@@ -21,10 +21,10 @@
 
 IqOrmFilter::IqOrmFilter(QObject *parent) :
     IqOrmAbstractFilter(parent),
-    _operation(None),
-    _property(""),
-    _value(QVariant()),
-    _caseSensitivity(Qt::CaseSensitive)
+    m_condition(None),
+    m_property(""),
+    m_value(QVariant()),
+    m_caseSensitivity(Qt::CaseSensitive)
 {
 }
 
@@ -33,47 +33,67 @@ IqOrmFilter::~IqOrmFilter()
 
 }
 
-IqOrmFilter::IqOrmFilter(const QString &property, Operation operation, const QVariant &value, QObject *parent) :
+IqOrmFilter::IqOrmFilter(const QString &property, Condition operation, const QVariant &value, QObject *parent) :
     IqOrmAbstractFilter(parent),
-    _operation(operation),
-    _property(property),
-    _value(value),
-    _caseSensitivity(Qt::CaseSensitive)
+    m_condition(operation),
+    m_property(property),
+    m_value(value),
+    m_caseSensitivity(Qt::CaseSensitive)
 {
 }
 
-void IqOrmFilter::setOperation(const Operation operation)
+IqOrmFilter::Condition IqOrmFilter::condition() const
 {
-    if (_operation == operation)
-        return;
-    _operation = operation;
+    return m_condition;
+}
 
-    emit operationChanged();
+void IqOrmFilter::setCondition(const Condition operation)
+{
+    if (m_condition == operation)
+        return;
+    m_condition = operation;
+
+    emit conditionChanged();
+}
+
+QString IqOrmFilter::property() const
+{
+    return m_property;
 }
 
 void IqOrmFilter::setProperty(const QString &property)
 {
-    if (_property == property)
+    if (m_property == property)
         return;
-    _property = property;
+    m_property = property;
 
     emit propertyChanged();
 }
 
+QVariant IqOrmFilter::value() const
+{
+    return m_value;
+}
+
 void IqOrmFilter::setValue(const QVariant &value)
 {
-    if (_value == value)
+    if (m_value == value)
         return;
-    _value = value;
+    m_value = value;
 
     emit valueChanged();
 }
 
+Qt::CaseSensitivity IqOrmFilter::caseSensitivity() const
+{
+    return m_caseSensitivity;
+}
+
 void IqOrmFilter::setCaseSensitivity(const Qt::CaseSensitivity caseSensitivity)
 {
-    if (_caseSensitivity == caseSensitivity)
+    if (m_caseSensitivity == caseSensitivity)
         return;
-    _caseSensitivity = caseSensitivity;
+    m_caseSensitivity = caseSensitivity;
 
     emit caseSensitivityChanged();
 }

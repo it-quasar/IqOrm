@@ -25,7 +25,6 @@
 #include "iqormmetamodel.h"
 #include "iqormbasemodel.h"
 #include "iqormsqldatasource.h"
-#include "iqormdirectpropertydescription.h"
 #include "iqormerror.h"
 #include "iqormobject.h"
 #include <QDebug>
@@ -35,6 +34,8 @@
 #include "iqormtransactioncontrol.h"
 #include "iqormmodelprivateaccessor.h"
 #include "iqormdatasourceoperationresult.h"
+#include "iqormdirectpropertydescription.h"
+#include "iqormmanytoonepropertydescription.h"
 
 
 IqOrmSqlModelDataSource::IqOrmSqlModelDataSource(IqOrmSqlDataSource *sqlDataSource) :
@@ -73,7 +74,25 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
     //Сформируем WHERE
     QString whereStr;
     //Добавим список фильтров
-    whereStr = filterString(ormModel, model->filters(), &bindValues);
+    whereStr = filterString(ormModel, model->filters(), &bindValues, &ok, &error);
+
+#if defined(IQORM_DEBUG_MODE)
+    if (ok)
+        qDebug("Ok. Create filter for IqOrmModel<%s> completed in %d msec.",
+               model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+               elaplesTime.elapsed());
+    else
+        qWarning("Error. Error on create filter for IqOrmModel<%s> in %d msec. Error: %s",
+                 model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+                 elaplesTime.elapsed(),
+                 error.toLocal8Bit().constData());
+#endif
+
+    if (!ok) {
+        model->clear();
+        result.setError(error);
+        return result;
+    }
 
     //Сформируем лимиты
     QString limitStr;
@@ -167,7 +186,7 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
                model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
                elaplesTime.elapsed());
     else
-        qDebug("Error. Query for load model IqOrmModel<%s> executed in %d msec. Error: \"%s\".",
+        qWarning("Error. Query for load model IqOrmModel<%s> executed in %d msec. Error: \"%s\".",
                model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
                elaplesTime.elapsed(),
                error.toLocal8Bit().constData());
@@ -225,284 +244,28 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::truncateModel(const IqOr
     return result;
 }
 
-//QList<qint64> IqOrmSqlObjectsModelDataSource::findObjects(const IqOrmModel *ormModel,
-//        const IqOrmAbstractFilter *filter,
-//        const qint64 limit,
-//        const qint64 offset,
-//        bool *ok,
-//        QString *errorMessage) const
-//{
-//    if (!m_sqlDataSource) {
-//        if (errorMessage)
-//            *errorMessage = tr("Not found valid SQL Data Source.");
-//        if (ok)
-//            *ok = false;
-//        return QList<qint64>();
-//    }
-
-
-//    QSqlDriver* driver = m_sqlDataSource->database().driver();
-
-//    QString queryStr = "SELECT id FROM ";
-
-//    if (!ormModel) {
-//        if (errorMessage)
-//            *errorMessage =tr("Not found valid child objects ORM model.");
-//        if (ok)
-//            *ok = false;
-//        return QList<qint64>();
-//    }
-
-//    QString tableName = driver->escapeIdentifier(ormModel->tableName(), QSqlDriver::TableName);
-
-//    if (tableName.isEmpty()) {
-//        if (errorMessage)
-//            *errorMessage = tr("Table name for child objects ORM Model not set. Use IqOrmModel::setTableName() first.");
-//        if (ok)
-//            *ok = false;
-//        return QList<qint64>();
-//    }
-
-//    queryStr.append(tableName);
-
-//    QStringList refTableNamesList = referencingTableNames(ormModel, filter);
-//    QString refTableNamesString = refTableNamesList.join(", ");
-//    if (!refTableNamesString.isEmpty())
-//        queryStr.append(QString(", %0").arg(refTableNamesString));
-
-//    QList<QVariant> bindValues;
-//    QString whereStr;
-//    whereStr = filterString(ormModel, filter, &bindValues);
-//    if (!whereStr.isEmpty())
-//        queryStr.append(QString(" WHERE %0").arg(whereStr));
-
-//    queryStr.append(" ORDER BY " + driver->escapeIdentifier("id", QSqlDriver::FieldName));
-
-//    if (limit != -1)
-//        queryStr.append(QString(" LIMIT %0 ").arg(limit));
-
-//    if (offset > 0)
-//        queryStr.append(QString(" OFFSET %0 ").arg(offset));
-
-//    bool queryOk = false;
-//    QSqlQuery query = m_sqlDataSource->execQuery(queryStr, bindValues, true, &queryOk, errorMessage);
-
-//    if (!queryOk) {
-//        if (ok)
-//            *ok = false;
-//        return QList<qint64>();
-//    }
-
-//    QList<qint64> result;
-
-//    while (query.next()) {
-//        result << query.value(0).toLongLong();
-//    }
-
-//    if (ok)
-//        *ok = true;
-
-//    return result;
-//}
-
 QString IqOrmSqlModelDataSource::filterString(const IqOrmMetaModel *ormModel,
-                                                     const IqOrmAbstractFilter *filter,
-                                                     QVariantList *bindValues) const
+                                              const IqOrmAbstractFilter *filter,
+                                              QVariantList *bindValues,
+                                              bool *ok,
+                                              QString *errorString) const
 {
     Q_CHECK_PTR (ormModel);
+    //Не проверяме фильтр, т.к. он может быть равен нулю
     Q_CHECK_PTR(bindValues);
+    Q_CHECK_PTR(ok);
+    Q_CHECK_PTR(errorString);
 
-    if (!filter)
+    if (!filter) {
+        *ok = true;
         return "";
-
-    //Если это просто фильтр
-    const IqOrmFilter *simpleFilter = qobject_cast<const IqOrmFilter *>(filter);
-    if (simpleFilter) {
-        if (simpleFilter->operation() == IqOrmFilter::None)
-            return "";
-
-        QString referencingString = "";
-        QString columnName = "";
-
-        //Получим свойство модели
-        const IqOrmPropertyDescription *propDescription = ormModel->propertyDescription(simpleFilter->property());
-        if (propDescription) {
-            switch (propDescription->mappedType()) {
-            case IqOrmPropertyDescription::Direct: {
-                const IqOrmDirectPropertyDescription *directPropertyDescription = qobject_cast<const IqOrmDirectPropertyDescription *>(propDescription);
-                Q_CHECK_PTR(directPropertyDescription);
-
-                columnName = m_sqlDataSource->escapedTableName(ormModel->tableName());
-                columnName.append(".");
-                columnName.append(m_sqlDataSource->escapedFieldName(directPropertyDescription->columnName()));
-
-                break;
-            }
-            }
-        } else if (simpleFilter->property() == QStringLiteral("objectId")) {
-            //Отдельно обработаем свойство "objectId"
-            columnName = m_sqlDataSource->escapedTableName(ormModel->tableName());
-            columnName.append(".");
-            columnName.append(m_sqlDataSource->escapedIdFieldName());
-        }
-
-        Q_ASSERT(!columnName.isEmpty());
-
-        QString filterString = "";
-
-        QVariant::Type propertyType;
-        if (propDescription) {
-            propertyType = propDescription->targetStaticMetaPropery().type();
-        } else if (simpleFilter->property() == QStringLiteral("objectId")) {
-            propertyType = QVariant::LongLong;
-        }
-
-        //В зависимости от типа свойства модели
-        switch (propertyType) {
-        case QVariant::Invalid:
-            return "";
-            break;
-
-            //Строка
-        case QVariant::String: {
-            QString caseSesitivityColumnName = "";
-            QString caseSesitivityBindParam = "";
-            if (simpleFilter->caseSensitivity()) {
-                caseSesitivityColumnName = columnName;
-                caseSesitivityBindParam = "?";
-            } else {
-                caseSesitivityColumnName = QString("LOWER(%0)").arg(columnName);
-                caseSesitivityBindParam = "LOWER(?)";
-            }
-
-            switch (simpleFilter->operation()) {
-            case IqOrmFilter::NotEquals:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 <> %1")
-                               .arg(caseSesitivityColumnName)
-                               .arg(caseSesitivityBindParam);
-                break;
-            case IqOrmFilter::Equals:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 = %1")
-                               .arg(caseSesitivityColumnName)
-                               .arg(caseSesitivityBindParam);
-                break;
-            case IqOrmFilter::StartsWith:
-                bindValues->append(simpleFilter->value().toString() + "%");
-                filterString = QString("%0 LIKE %1")
-                               .arg(caseSesitivityColumnName)
-                               .arg(caseSesitivityBindParam);
-                break;
-            case IqOrmFilter::Contains:
-                bindValues->append("%" + simpleFilter->value().toString() + "%");
-                filterString = QString("%0 LIKE %1")
-                               .arg(caseSesitivityColumnName)
-                               .arg(caseSesitivityBindParam);
-                break;
-            case IqOrmFilter::EndsWith:
-                bindValues->append("%" + simpleFilter->value().toString());
-                filterString = QString("%0 LIKE %1")
-                               .arg(caseSesitivityColumnName)
-                               .arg(caseSesitivityBindParam);
-                break;
-            default:
-                filterString = "";
-                break;
-            }
-            break;
-        }
-
-        //Числа
-        case QVariant::Char:
-        case QVariant::UInt:
-        case QVariant::Int:
-        case QVariant::ULongLong:
-        case QVariant::LongLong:
-        case QVariant::Double: {
-            switch (simpleFilter->operation()) {
-            case IqOrmFilter::Equals:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 = ?")
-                               .arg(columnName);
-                break;
-            case IqOrmFilter::NotEquals:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 <> ?")
-                               .arg(columnName);
-                break;
-            case IqOrmFilter::GreaterThan:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 > ?")
-                               .arg(columnName);
-                break;
-            case IqOrmFilter::GreaterOrEquals:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 >= ?")
-                               .arg(columnName);
-                break;
-            case IqOrmFilter::LessThan:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 < ?")
-                               .arg(columnName);
-                break;
-            case IqOrmFilter::LessOrEquals:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 <= ?")
-                               .arg(columnName);
-                break;
-            default:
-                filterString = "";
-                break;
-            }
-            break;
-        }
-        default:
-            //Ведем себя как с неизвестным типом
-            switch (simpleFilter->operation()) {
-            case IqOrmFilter::Equals:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 = ?")
-                               .arg(columnName);
-                break;
-            case IqOrmFilter::NotEquals:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 <> ?")
-                               .arg(columnName);
-                break;
-            case IqOrmFilter::GreaterThan:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 > ?")
-                               .arg(columnName);
-                break;
-            case IqOrmFilter::GreaterOrEquals:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 >= ?")
-                               .arg(columnName);
-                break;
-            case IqOrmFilter::LessThan:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 < ?")
-                               .arg(columnName);
-                break;
-            case IqOrmFilter::LessOrEquals:
-                bindValues->append(simpleFilter->value());
-                filterString = QString("%0 <= ?")
-                               .arg(columnName);
-                break;
-            default:
-                filterString = "";
-                break;
-            }
-
-            break;
-        }
-
-        return QString("%0 %1")
-               .arg(filterString)
-               .arg(referencingString);
     }
 
+    //Если это просто фильтр
+    const IqOrmFilter *directFilter = qobject_cast<const IqOrmFilter *>(filter);
+    if (directFilter) {
+        return simpleFilterString(ormModel, directFilter, bindValues, ok, errorString);
+    }
 
     //Если это групповой фильтр
     const IqOrmGroupFilter *groupFilter = qobject_cast<const IqOrmGroupFilter*>(filter);
@@ -512,7 +275,9 @@ QString IqOrmSqlModelDataSource::filterString(const IqOrmMetaModel *ormModel,
             if (!childFilter)
                 continue;
 
-            resultList << filterString(ormModel, childFilter, bindValues);
+            resultList << filterString(ormModel, childFilter, bindValues, ok, errorString);
+            if (!(*ok))
+                return "";
         }
 
         if (!resultList.isEmpty()) {
@@ -525,54 +290,291 @@ QString IqOrmSqlModelDataSource::filterString(const IqOrmMetaModel *ormModel,
         }
     }
 
+    *ok = true;
     return "";
 }
 
-//QStringList IqOrmSqlObjectsModelDataSource::referencingTableNames(const IqOrmModel *ormModel,
-//                                                                  const IqOrmAbstractFilter *filter) const
-//{
-//    if (!ormModel)
-//        return QStringList();
+QString IqOrmSqlModelDataSource::simpleFilterString(const IqOrmMetaModel *ormModel,
+                                                    const IqOrmFilter *filter,
+                                                    QVariantList *bindValues,
+                                                    bool *ok,
+                                                    QString *errorString) const
+{
+    Q_CHECK_PTR(ormModel);
+    Q_CHECK_PTR(filter);
+    Q_CHECK_PTR(bindValues);
+    Q_CHECK_PTR(ok);
+    Q_CHECK_PTR(errorString);
 
-//    if (!filter)
-//        return QStringList();
+    if (filter->condition() == IqOrmFilter::None) {
+        *ok = true;
+        return "";
+    }
 
-//    QSqlDriver* sqlDriver = m_sqlDataSource->database().driver();
-//    if (!sqlDriver)
-//        return QStringList();
+    //Получим свойство модели
+    const IqOrmPropertyDescription *propDescription = ormModel->propertyDescription(filter->property());
+    if (propDescription) {
+        switch (propDescription->mappedType()) {
+        case IqOrmPropertyDescription::Direct: {
+            const IqOrmDirectPropertyDescription *directPropertyDescription = qobject_cast<const IqOrmDirectPropertyDescription *>(propDescription);
+            Q_CHECK_PTR(directPropertyDescription);
 
-//    //Если это просто фильтр
-//    const IqOrmFilter *simpleFilter = qobject_cast<const IqOrmFilter *>(filter);
-//    if (simpleFilter) {
-//        if (simpleFilter->operation() == IqOrmFilter::None)
-//            return QStringList();
+            return filterStringForDirectProperty(ormModel, filter, directPropertyDescription, bindValues, ok, errorString);
+            break;
+        }
+        case IqOrmPropertyDescription::ManyToOne: {
+            const IqOrmBaseManyToOnePropertyDescription *manyToOnePropertyDescription = qobject_cast<const IqOrmBaseManyToOnePropertyDescription *>(propDescription);
+            Q_CHECK_PTR(manyToOnePropertyDescription);
 
-//        //Получим свойство модели
-//        IqOrmPropertyDescription *propDescription = ormModel->propertyDescription(simpleFilter->property());
-//        if (!propDescription)
-//            return QStringList();
+            return filterStringForManyToOneProperty(ormModel, filter, manyToOnePropertyDescription, bindValues, ok, errorString);
+            break;
+        }
+        }
+    } else if (filter->property() == QStringLiteral("objectId")) {
+        //Отдельно обработаем свойство "objectId"
+        return filterStringForDirectProperty(ormModel, filter, Q_NULLPTR, bindValues, ok, errorString);
+    } else {
+        *ok = false;
+        *errorString = tr ("Property \"%0\" of IqOrmFilter not found in class \"%1\".")
+                .arg(filter->property())
+                .arg(ormModel->targetStaticMetaObject()->className());
+        return "";
+    }
 
-//        switch (propDescription->mappedType()) {
-//        case IqOrmPropertyDescription::Direct: {
-//            return QStringList();
-//            break;
-//        }
-//        }
-//    }
+    *ok = true;
+    return "";
+}
 
-//    //Если это групповой фильтр
-//    const IqOrmGroupFilter *groupFilter = qobject_cast<const IqOrmGroupFilter*>(filter);
-//    if (groupFilter) {
-//        QStringList resultList;
-//        foreach (IqOrmAbstractFilter *childFilter, groupFilter->toList()) {
-//            if (!childFilter)
-//                continue;
+QString IqOrmSqlModelDataSource::filterStringForDirectProperty(const IqOrmMetaModel *ormModel,
+                                                               const IqOrmFilter *filter,
+                                                               const IqOrmDirectPropertyDescription *propertyDesctiption,
+                                                               QVariantList *bindValues,
+                                                               bool *ok,
+                                                               QString *errorString) const
+{
+    Q_CHECK_PTR(ormModel);
+    //Не проверяем filter, т.к. он может быть нулем (если свойство objectId)
+    Q_CHECK_PTR(propertyDesctiption);
+    Q_CHECK_PTR(ok);
+    Q_CHECK_PTR(errorString);
 
-//            resultList << referencingTableNames(ormModel, childFilter);
-//        }
+    QString columnName = "";
 
-//        return resultList;
-//    }
+    //Получим свойство модели
+    if (propertyDesctiption) {
+        columnName = m_sqlDataSource->escapedTableName(ormModel->tableName());
+        columnName.append(".");
+        columnName.append(m_sqlDataSource->escapedFieldName(propertyDesctiption->columnName()));
+    } else if (filter->property() == QStringLiteral("objectId")) {
+        //Отдельно обработаем свойство "objectId"
+        columnName = m_sqlDataSource->escapedTableName(ormModel->tableName());
+        columnName.append(".");
+        columnName.append(m_sqlDataSource->escapedIdFieldName());
+    }
 
-//    return QStringList();
-//}
+    Q_ASSERT(!columnName.isEmpty());
+
+    QString filterString = "";
+
+    QVariant::Type propertyType;
+    if (propertyDesctiption) {
+        propertyType = propertyDesctiption->targetStaticMetaPropery().type();
+    } else if (filter->property() == QStringLiteral("objectId")) {
+        propertyType = QVariant::LongLong;
+    }
+
+    //В зависимости от типа свойства модели
+    switch (propertyType) {
+    case QVariant::Invalid:
+        *ok = true;
+        return "";
+        break;
+
+        //Строка
+    case QVariant::String: {
+        QString caseSesitivityColumnName = "";
+        QString caseSesitivityBindParam = "";
+        if (filter->caseSensitivity()) {
+            caseSesitivityColumnName = columnName;
+            caseSesitivityBindParam = "?";
+        } else {
+            caseSesitivityColumnName = QString("LOWER(%0)").arg(columnName);
+            caseSesitivityBindParam = "LOWER(?)";
+        }
+
+        switch (filter->condition()) {
+        case IqOrmFilter::NotEquals:
+            bindValues->append(filter->value());
+            filterString = QString("%0 <> %1")
+                    .arg(caseSesitivityColumnName)
+                    .arg(caseSesitivityBindParam);
+            break;
+        case IqOrmFilter::Equals:
+            bindValues->append(filter->value());
+            filterString = QString("%0 = %1")
+                    .arg(caseSesitivityColumnName)
+                    .arg(caseSesitivityBindParam);
+            break;
+        case IqOrmFilter::StartsWith:
+            bindValues->append(filter->value().toString() + "%");
+            filterString = QString("%0 LIKE %1")
+                    .arg(caseSesitivityColumnName)
+                    .arg(caseSesitivityBindParam);
+            break;
+        case IqOrmFilter::Contains:
+            bindValues->append("%" + filter->value().toString() + "%");
+            filterString = QString("%0 LIKE %1")
+                    .arg(caseSesitivityColumnName)
+                    .arg(caseSesitivityBindParam);
+            break;
+        case IqOrmFilter::EndsWith:
+            bindValues->append("%" + filter->value().toString());
+            filterString = QString("%0 LIKE %1")
+                    .arg(caseSesitivityColumnName)
+                    .arg(caseSesitivityBindParam);
+            break;
+        default:
+            int enumIndex = IqOrmFilter::staticMetaObject.indexOfEnumerator("Condition");
+            Q_ASSERT(enumIndex != -1);
+            QMetaEnum metaEnum = IqOrmFilter::staticMetaObject.enumerator(enumIndex);
+            const char *conditionName = metaEnum.key(filter->condition());
+            *ok = false;
+            *errorString = tr("IqOrmFilter for QString property \"%0\" not support \"%1\" condition.")
+                    .arg(propertyDesctiption->propertyName())
+                    .arg(conditionName);
+            return "";
+            break;
+        }
+        break;
+    }
+
+    default:
+        //Ведем себя как с неизвестным типом
+        bindValues->append(filter->value());
+        return columnCondition(columnName, propertyDesctiption->propertyName(), filter->condition(), ok, errorString);
+        break;
+    }
+
+    *ok = true;
+    return filterString;
+}
+
+QString IqOrmSqlModelDataSource::filterStringForManyToOneProperty(const IqOrmMetaModel *ormModel,
+                                                                  const IqOrmFilter *filter,
+                                                                  const IqOrmBaseManyToOnePropertyDescription *propertyDesctiption,
+                                                                  QVariantList *bindValues,
+                                                                  bool *ok,
+                                                                  QString *errorString) const
+{
+    Q_CHECK_PTR(ormModel);
+    Q_CHECK_PTR(filter);
+    Q_CHECK_PTR(propertyDesctiption);
+    Q_CHECK_PTR(ok);
+    Q_CHECK_PTR(errorString);
+
+    QString columnName;
+    columnName = m_sqlDataSource->escapedTableName(ormModel->tableName());
+    columnName.append(".");
+    columnName.append(m_sqlDataSource->escapedFieldName(propertyDesctiption->joinColumnName()));
+
+    Q_ASSERT(!columnName.isEmpty());
+
+    qint64 objectId = -1;
+    QVariant filterValue = filter->value();
+    if (filterValue.canConvert<QObject *>()) {
+        QObject *qobject = filterValue.value<QObject *>();
+        IqOrmObject *ormObject = dynamic_cast<IqOrmObject *>(qobject);
+        if (ormObject)
+            objectId = ormObject->objectId();
+        else {
+            *ok = false;
+            *errorString = tr("IqOrmFilter for Many To One property \"%0\" support only \"IqOrmObject *\" as value.")
+                    .arg(propertyDesctiption->propertyName());
+            return "";
+        }
+    }
+
+    if (objectId == -1) {
+        *ok = false;
+        *errorString = tr("IqOrmFilter for Many To One property \"%0\" must have persisted \"IqOrmObject *\" as value.")
+                .arg(propertyDesctiption->propertyName());
+        return "";
+    }
+
+    bindValues->append(objectId);
+
+    QString filterString;
+    switch (filter->condition()) {
+    case IqOrmFilter::Equals:
+        filterString = QString("%0 = ?")
+                .arg(columnName);
+        break;
+    case IqOrmFilter::NotEquals:
+        filterString = QString("%0 <> ?")
+                .arg(columnName);
+        break;
+    default:
+        int enumIndex = IqOrmFilter::staticMetaObject.indexOfEnumerator("Condition");
+        Q_ASSERT(enumIndex != -1);
+        QMetaEnum metaEnum = IqOrmFilter::staticMetaObject.enumerator(enumIndex);
+        const char *conditionName = metaEnum.key(filter->condition());
+        *ok = false;
+        *errorString = tr("IqOrmFilter for Many To One property \"%0\" not support \"%1\" condition.")
+                .arg(propertyDesctiption->propertyName())
+                .arg(conditionName);
+        return "";
+        break;
+    }
+
+    *ok = true;
+    return filterString;
+}
+
+QString IqOrmSqlModelDataSource::columnCondition(const QString &columnName,
+                                                 const QString &propertyName,
+                                                 IqOrmFilter::Condition condition,
+                                                 bool *ok,
+                                                 QString *errorString) const
+{
+    QString conditionString;
+    switch (condition) {
+    case IqOrmFilter::Equals:
+        conditionString = QString("%0 = ?")
+                .arg(columnName);
+        break;
+    case IqOrmFilter::NotEquals:
+        conditionString = QString("%0 <> ?")
+                .arg(columnName);
+        break;
+    case IqOrmFilter::GreaterThan:
+        conditionString = QString("%0 > ?")
+                .arg(columnName);
+        break;
+    case IqOrmFilter::GreaterOrEquals:
+        conditionString = QString("%0 >= ?")
+                .arg(columnName);
+        break;
+    case IqOrmFilter::LessThan:
+        conditionString = QString("%0 < ?")
+                .arg(columnName);
+        break;
+    case IqOrmFilter::LessOrEquals:
+        conditionString = QString("%0 <= ?")
+                .arg(columnName);
+        break;
+    default:
+        int enumIndex = IqOrmFilter::staticMetaObject.indexOfEnumerator("Condition");
+        Q_ASSERT(enumIndex != -1);
+        QMetaEnum metaEnum = IqOrmFilter::staticMetaObject.enumerator(enumIndex);
+        const char *conditionName = metaEnum.key(condition);
+        *ok = false;
+        *errorString = tr("IqOrmFilter for not QString property \"%0\" not support \"%1\" condition.")
+                .arg(propertyName)
+                .arg(conditionName);
+        return "";
+        break;
+    }
+
+    *ok = true;
+    return conditionString;
+}

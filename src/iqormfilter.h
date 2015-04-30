@@ -27,14 +27,14 @@
 class IQORMSHARED_EXPORT IqOrmFilter : public IqOrmAbstractFilter
 {
     Q_OBJECT
-    Q_PROPERTY(Operation operation READ operation WRITE setOperation NOTIFY operationChanged)
+    Q_PROPERTY(Condition condition READ condition WRITE setCondition NOTIFY conditionChanged)
     Q_PROPERTY(QString property READ property WRITE setProperty NOTIFY propertyChanged)
     Q_PROPERTY(QVariant value READ value WRITE setValue NOTIFY valueChanged)
     Q_PROPERTY(Qt::CaseSensitivity caseSensitivity READ caseSensitivity WRITE setCaseSensitivity NOTIFY caseSensitivityChanged)
 
-    Q_ENUMS(Operation)
+    Q_ENUMS(Condition)
 public:
-    enum Operation
+    enum Condition
     {
         None,
         Equals,
@@ -52,37 +52,32 @@ public:
 
     ~IqOrmFilter();
 
-    explicit IqOrmFilter(const QString &property, Operation operation, const QVariant &value, QObject *parent = Q_NULLPTR);
+    explicit IqOrmFilter(const QString &property, Condition condition, const QVariant &value, QObject *parent = Q_NULLPTR);
 
 public:
+    Condition condition() const;
+    void setCondition(const Condition condition);
 
-    inline Operation operation() const {return _operation;}
-
-    void setOperation(const Operation operation);
-
-    inline QString property() const {return _property;}
-
+    QString property() const;
     void setProperty(const QString &property);
 
-    inline QVariant value() const {return _value;}
-
+    QVariant value() const;
     void setValue(const QVariant &value);
 
-    inline Qt::CaseSensitivity caseSensitivity() const {return _caseSensitivity;}
-
+    Qt::CaseSensitivity caseSensitivity() const;
     void setCaseSensitivity(const Qt::CaseSensitivity caseSensitivity);
 
 signals:
-    void operationChanged();
+    void conditionChanged();
     void propertyChanged();
     void valueChanged();
     void caseSensitivityChanged();
 
 private:
-    Operation _operation;
-    QString _property;
-    QVariant _value;
-    Qt::CaseSensitivity _caseSensitivity;
+    Condition m_condition;
+    QString m_property;
+    QVariant m_value;
+    Qt::CaseSensitivity m_caseSensitivity;
 };
 
 #endif // IQORMFILTER_H

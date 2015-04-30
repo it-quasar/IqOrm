@@ -37,10 +37,6 @@ void IqOrmError::setText(const QString &text)
         if (m_oldError != !text.isEmpty())
             emit errorChanged();
         m_oldError = !text.isEmpty();
-
-        if (!text.isEmpty())
-            qDebug() << tr("ORM Error: %0.")
-                        .arg(text);
     }
 }
 

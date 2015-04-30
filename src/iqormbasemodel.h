@@ -56,7 +56,6 @@ public:
 
     virtual const IqOrmMetaModel * childsOrmMetaModel() const = 0;
 
-
     Q_INVOKABLE virtual QObject *get(int row);
 
     Q_INVOKABLE virtual QObject *first();
@@ -66,6 +65,8 @@ public:
     virtual IqOrmObject *take(int row);
 
     virtual IqOrmObject *take(IqOrmObject *object);
+
+    QVariant objectData(qint64 row, const QString &property) const;
 
     void setPropertyEditable(const QString &property,
                              const bool editable = true);
@@ -79,12 +80,12 @@ public:
                            const QString &headerTitle);
 
     bool find(const QString &propertyName,
-              IqOrmFilter::Operation operation,
+              IqOrmFilter::Condition operation,
               const QVariant &value,
               IqOrmAbstractDataSource *dataSource = Q_NULLPTR);
 
     bool find(const QString &propertyName,
-              IqOrmFilter::Operation operation,
+              IqOrmFilter::Condition operation,
               const QVariant &value,
               Qt::CaseSensitivity caseSensitivity,
               IqOrmAbstractDataSource *dataSource = Q_NULLPTR);
@@ -191,7 +192,6 @@ private:
     void createItemObject(IqOrmModelItem *item, qint64 row);
 
 private:
-
     QMetaMethod m_onObjectChangedMethod;
     IqOrmAbstractFilter *m_filters;
     IqOrmError *m_lastError;
