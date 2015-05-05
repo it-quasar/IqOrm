@@ -302,6 +302,11 @@ qint64 IqOrmBaseModel::count() const
     return rowCount();
 }
 
+bool IqOrmBaseModel::isEmpty() const
+{
+    return rowCount() == 0;
+}
+
 void IqOrmBaseModel::clear()
 {
     if (rowCount() == 0)

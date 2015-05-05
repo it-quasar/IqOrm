@@ -160,6 +160,8 @@ protected:
      */
     virtual void reset() = 0;
 
+    IqOrmAbstractTriggers *triggers() const;
+
 public:
     qint64 objectId() const;
 
@@ -209,8 +211,6 @@ private:
      * \return Свойство объекта
      */
     QVariant sourcePropertyValue(const IqOrmPropertyDescription *propertyDescription) const;
-
-    IqOrmAbstractTriggers *triggers() const;
 
     bool isLoadedFromDataSource() const;
     void setIsLoadedFromDataSource(bool isLoadedFromDataSource);

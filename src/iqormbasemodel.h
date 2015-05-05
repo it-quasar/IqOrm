@@ -108,6 +108,8 @@ public:
 
     qint64 count() const;
 
+    bool isEmpty() const;
+
     int rowOf(const IqOrmObject* object) const;
 
     QList<IqOrmObject *> toObjectList();
