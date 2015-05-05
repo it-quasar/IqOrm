@@ -160,10 +160,11 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
     if (!whereStr.isEmpty())
         queryStr.append(QString("\n    WHERE %0").arg(whereStr));
 
-    queryStr.append("\n    GROUP BY ");
-    queryStr.append(m_sqlDataSource->escapedTableName(ormModel->tableName()));
-    queryStr.append(".");
-    queryStr.append(m_sqlDataSource->escapedIdFieldName());
+    //Временно удалим GROUP BY. Надо вспомнить зачем она тут вообще
+//    queryStr.append("\n    GROUP BY ");
+//    queryStr.append(m_sqlDataSource->escapedTableName(ormModel->tableName()));
+//    queryStr.append(".");
+//    queryStr.append(m_sqlDataSource->escapedIdFieldName());
 
     //Добавим сортировку
     queryStr.append(orderStr);
