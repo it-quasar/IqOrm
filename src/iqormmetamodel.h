@@ -81,7 +81,7 @@ public:
 
     QStringList sourcesIdList() const;
 
-    QList<const IqOrmPropertyDescription *> propertyDescriptions() const;
+    QSet<const IqOrmPropertyDescription *> propertyDescriptions() const;
 
     const IqOrmPropertyDescription * propertyDescription(const QString &propertyName) const;
 
@@ -109,7 +109,7 @@ private:
     friend class IqOrmObject;
     friend class IqOrmQmlObject;
 
-    QList<const IqOrmPropertyDescription *> m_propertyDescriptions;
+    QSet<const IqOrmPropertyDescription *> m_propertyDescriptions;
 
     QString m_tableName;
     const QMetaObject *m_targetStaticMetaObject;

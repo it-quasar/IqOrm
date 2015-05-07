@@ -27,7 +27,8 @@
 #include "iqormpointerset.h"
 #include "iqormsharedpointerset.h"
 #include "iqormlazypointerset.h"
-#include "iqormlazysharedpointerset.h"
+#include "iqormsharedlazypointerset.h"
+#include "iqormtransactioncontrol.h"
 
 #define IQORM_REGISTER_CLASS(CLASS_NAME) \
     template<class T> int CLASS_NAME::IqOrmClassAutoRegistrer<T>::m_registered = 0; \
@@ -35,7 +36,7 @@
     Q_DECLARE_METATYPE(IqOrmPointerSet<CLASS_NAME>) \
     Q_DECLARE_METATYPE(IqOrmSharedPointerSet<CLASS_NAME>) \
     Q_DECLARE_METATYPE(IqOrmLazyPointerSet<CLASS_NAME>) \
-    Q_DECLARE_METATYPE(IqOrmLazySharedPointerSet<CLASS_NAME>) \
+    Q_DECLARE_METATYPE(IqOrmSharedLazyPointerSet<CLASS_NAME>) \
 \
     inline uint qHash(const QPointer<CLASS_NAME> &key, uint seed) \
     { \
@@ -76,13 +77,13 @@ public: \
 \
     Q_SIGNAL void dataSourceChanged(); \
 \
-    Q_INVOKABLE bool load(const qint64 objectId, bool autoTransaction = true) {return IqOrmObject::load(objectId, autoTransaction);} \
+    Q_INVOKABLE bool load(const qint64 objectId, IqOrmTransactionControl transaction = IqOrmTransactionControl()) {return IqOrmObject::load(objectId, transaction);} \
 \
-    Q_INVOKABLE bool reload(bool autoTransaction = true) {return IqOrmObject::reload(autoTransaction);} \
+    Q_INVOKABLE bool reload(IqOrmTransactionControl transaction = IqOrmTransactionControl()) {return IqOrmObject::reload(transaction);} \
 \
-    Q_INVOKABLE bool save(bool autoTransaction = true) {return IqOrmObject::save(autoTransaction);} \
+    Q_INVOKABLE bool save(IqOrmTransactionControl transaction = IqOrmTransactionControl()) {return IqOrmObject::save(transaction);} \
 \
-    Q_INVOKABLE bool remove(bool autoTransaction = true) {return IqOrmObject::remove(autoTransaction);} \
+    Q_INVOKABLE bool remove(IqOrmTransactionControl transaction = IqOrmTransactionControl()) {return IqOrmObject::remove(transaction);} \
 \
     template<class T> \
     class IqOrmClassAutoRegistrer \
@@ -141,15 +142,15 @@ public:
 
     virtual const IqOrmMetaModel *ormMetaModel() const;
 
-    bool load(const qint64 objectId, bool autoTransaction = true);
+    bool load(const qint64 objectId, IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
-    bool load(bool autoTransaction = true);
+    bool load(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
-    bool reload(bool autoTransaction = true);
+    bool reload(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
-    bool save(bool autoTransaction = true);
+    bool save(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
-    bool remove(bool autoTransaction = true);
+    bool remove(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
 protected:
     /*!
@@ -203,7 +204,7 @@ private:
      *
      * \return Список свойств объекта
      */
-    QList<const IqOrmPropertyDescription *> sourcePropertyChanges() const;
+    QSet<const IqOrmPropertyDescription *> sourcePropertyChanges() const;
 
     /*!
      * \brief Возвращает первоночальное (сохраненное в источнике данных) свойство объекта

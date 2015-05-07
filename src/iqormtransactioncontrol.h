@@ -22,8 +22,10 @@
 
 #include <QSharedData>
 #include "iqorm_global.h"
+#include <QMutex>
 
 class IqOrmAbstractDataSource;
+
 class IQORMSHARED_EXPORT IqOrmTransactionControl
 {
 public:
@@ -33,11 +35,15 @@ public:
 
     ~IqOrmTransactionControl();
 
+    bool isValid() const;
+
     bool isTransactionOpen() const;
 
     bool commit();
 
     bool rollback();
+
+    IqOrmAbstractDataSource *dataSource() const;
 
 private:
     class IqOrmTransactionControlData: public QSharedData
@@ -47,6 +53,7 @@ private:
         ~IqOrmTransactionControlData();
         IqOrmAbstractDataSource *dataSource;
         bool transactionIsOpen;
+        mutable QMutex mutex;
     };
 
     QExplicitlySharedDataPointer<IqOrmTransactionControlData> d;

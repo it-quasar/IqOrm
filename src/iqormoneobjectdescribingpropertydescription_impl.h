@@ -23,7 +23,7 @@
 
 #include "iqormobjectprivateaccessor.h"
 #include "iqormlazypointer.h"
-#include "iqormlazysharedpointer.h"
+#include "iqormsharedlazypointer.h"
 #include "iqormdirectmappedpropertydescription.h"
 #include "iqorminversedmappedpropertydescription.h"
 
@@ -73,10 +73,10 @@ bool IqOrmOneObjectDescribingPropertyDescription::setPropertyValueFromObjectId(c
         Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(pointer.data()));
         IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(pointer.data(), false);
         return propertyDescription->setValue(object, QVariant::fromValue(pointer));
-    } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<IqOrmLazySharedPointer<T> >()))) {
-        IqOrmLazySharedPointer<T> pointer;
+    } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<IqOrmSharedLazyPointer<T> >()))) {
+        IqOrmSharedLazyPointer<T> pointer;
         if (!objectId.isNull())
-            pointer = IqOrmLazySharedPointer<T>(intObjectId);
+            pointer = IqOrmSharedLazyPointer<T>(intObjectId);
         return propertyDescription->setValue(object, QVariant::fromValue(pointer));
     }
 
@@ -117,8 +117,8 @@ QVariant IqOrmOneObjectDescribingPropertyDescription::propertyValueAsObjectId(co
         if (!pointer)
             return QVariant(QVariant::LongLong);
         return pointer->objectId();
-    } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<IqOrmLazySharedPointer<T> >()))) {
-        IqOrmLazySharedPointer<T> pointer = propertyValue.value<IqOrmLazySharedPointer<T> >();
+    } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<IqOrmSharedLazyPointer<T> >()))) {
+        IqOrmSharedLazyPointer<T> pointer = propertyValue.value<IqOrmSharedLazyPointer<T> >();
         if (pointer.isNull())
             return QVariant(QVariant::LongLong);
         return pointer.objectId();

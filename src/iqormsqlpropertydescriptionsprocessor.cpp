@@ -69,7 +69,7 @@ QStringList IqOrmSqlPropertyDescriptionsProcessor::insertFieldNames(const IqOrmM
 }
 
 QStringList IqOrmSqlPropertyDescriptionsProcessor::updateFieldNames(const IqOrmMetaModel *ormModel,
-                                                                    const QList<const IqOrmPropertyDescription *> &propertyDescriptions) const
+                                                                    const QSet<const IqOrmPropertyDescription *> &propertyDescriptions) const
 {
     Q_CHECK_PTR(ormModel);
     QStringList result;
@@ -102,7 +102,8 @@ QVariantList IqOrmSqlPropertyDescriptionsProcessor::insertValues(const IqOrmObje
     return result;
 }
 
-QVariantList IqOrmSqlPropertyDescriptionsProcessor::updateValues(const IqOrmObject *object, const QList<const IqOrmPropertyDescription *> &propertyDescriptions) const
+QVariantList IqOrmSqlPropertyDescriptionsProcessor::updateValues(const IqOrmObject *object,
+                                                                 const QSet<const IqOrmPropertyDescription *> &propertyDescriptions) const
 {
     Q_CHECK_PTR(object);
     QVariantList result;
@@ -161,7 +162,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::insertAllowed(const IqOrmObject *obj
 }
 
 bool IqOrmSqlPropertyDescriptionsProcessor::updateAllowed(const IqOrmObject *object,
-                                                          const QList<const IqOrmPropertyDescription *> &propertyDescriptions,
+                                                          const QSet<const IqOrmPropertyDescription *> &propertyDescriptions,
                                                           IqOrmDataSourceOperationResult *result) const
 {
     Q_CHECK_PTR(object);
@@ -222,7 +223,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::preInsert(const IqOrmObject *object,
 }
 
 bool IqOrmSqlPropertyDescriptionsProcessor::preUpdate(const IqOrmObject *object,
-                                                      const QList<const IqOrmPropertyDescription *> &propertyDescriptions,
+                                                      const QSet<const IqOrmPropertyDescription *> &propertyDescriptions,
                                                       IqOrmDataSourceOperationResult *result) const
 {
     Q_CHECK_PTR(object);
@@ -283,7 +284,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::postInsert(const IqOrmObject *object
 }
 
 bool IqOrmSqlPropertyDescriptionsProcessor::postUpdate(const IqOrmObject *object,
-                                                       const QList<const IqOrmPropertyDescription *> &propertyDescriptions,
+                                                       const QSet<const IqOrmPropertyDescription *> &propertyDescriptions,
                                                        IqOrmDataSourceOperationResult *result) const
 {
     Q_CHECK_PTR(object);

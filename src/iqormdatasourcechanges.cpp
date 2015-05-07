@@ -24,7 +24,7 @@ IqOrmDataSourceChanges::IqOrmDataSourceChangesData::IqOrmDataSourceChangesData()
     dataSource(Q_NULLPTR),
     objectId(-1),
     objectOrmModel(Q_NULLPTR),
-    operation(IqOrmDataSourceChanges::Update)
+    operation(IqOrmAbstractDataSource::NotSetOperation)
 {
 }
 
@@ -72,12 +72,13 @@ void IqOrmDataSourceChanges::setObjectOrmModel(const IqOrmMetaModel *objectOrmMo
     if (d->objectOrmModel != objectOrmModel)
         d->objectOrmModel = objectOrmModel;
 }
-IqOrmDataSourceChanges::Operation IqOrmDataSourceChanges::operation() const
+
+IqOrmAbstractDataSource::Operation IqOrmDataSourceChanges::operation() const
 {
     return d->operation;
 }
 
-void IqOrmDataSourceChanges::setOperation(const Operation &operation)
+void IqOrmDataSourceChanges::setOperation(const IqOrmAbstractDataSource::Operation &operation)
 {
     if (d->operation != operation)
         d->operation = operation;

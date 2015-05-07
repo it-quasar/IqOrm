@@ -17,47 +17,64 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#ifndef IQORMABSTRACTDATASOURCE_H
-#define IQORMABSTRACTDATASOURCE_H
+#include "iqormdatasourceoperationplan.h"
 
-#include <QObject>
-#include "iqorm_global.h"
-#include "iqormtransactioncontrol.h"
-
-class IqOrmAbstractObjectDataSource;
-class IqOrmAbstractModelDataSource;
-
-class IQORMSHARED_EXPORT IqOrmAbstractDataSource : public QObject
+IqOrmDataSourceOperationPlan::IqOrmDataSourceOperationPlan():
+    d(new IqOrmDataSourceOperationPlanData)
 {
-    Q_OBJECT
-public:
-    enum Operation
-    {
-        NotSetOperation,
-        Load,
-        Persist,
-        Update,
-        Remove
-    };
+}
 
-    explicit IqOrmAbstractDataSource(QObject *parent = Q_NULLPTR);
+IqOrmAbstractDataSource::Operation IqOrmDataSourceOperationPlan::operation() const
+{
+    return d->operation;
+}
 
-    virtual ~IqOrmAbstractDataSource();
+void IqOrmDataSourceOperationPlan::setOperation(const IqOrmAbstractDataSource::Operation &operation)
+{
+    if (d->operation != operation)
+        d->operation = operation;
+}
 
-    IqOrmTransactionControl transaction();
+qint64 IqOrmDataSourceOperationPlan::objectId() const
+{
+    return d->objectId;
+}
 
-    virtual IqOrmAbstractObjectDataSource *objectDataSource() const = 0;
+void IqOrmDataSourceOperationPlan::setObjectId(qint64 objectId)
+{
+    if (d->objectId != objectId)
+        d->objectId = objectId;
+}
 
-    virtual IqOrmAbstractModelDataSource *objectsModelDataSource() const = 0;
+IqOrmAbstractDataSource *IqOrmDataSourceOperationPlan::dataSource() const
+{
+    return d->dataSource;
+}
 
-protected:
-    friend class IqOrmTransactionControl;
+void IqOrmDataSourceOperationPlan::setDataSource(IqOrmAbstractDataSource *dataSource)
+{
+    if (d->dataSource != dataSource)
+        d->dataSource = dataSource;
+}
 
-    virtual bool openTransaction();
+QSet<const IqOrmPropertyDescription *> IqOrmDataSourceOperationPlan::changedProperties() const
+{
+    return d->changedProperties;
+}
 
-    virtual bool commitTransaction();
+void IqOrmDataSourceOperationPlan::setChangedProperites(const QSet<const IqOrmPropertyDescription *> &properites)
+{
+    d->changedProperties = properites;
+}
 
-    virtual bool rollbackTransaction();
-};
 
-#endif // IQORMABSTRACTDATASOURCE_H
+IqOrmDataSourceOperationPlan::IqOrmDataSourceOperationPlanData::IqOrmDataSourceOperationPlanData():
+    objectId(-1),
+    operation(IqOrmAbstractDataSource::NotSetOperation),
+    dataSource(Q_NULLPTR)
+{
+}
+
+IqOrmDataSourceOperationPlan::IqOrmDataSourceOperationPlanData::~IqOrmDataSourceOperationPlanData()
+{
+}

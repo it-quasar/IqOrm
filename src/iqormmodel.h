@@ -44,10 +44,10 @@ public:
 
     virtual T *take(IqOrmObject *object) Q_DECL_OVERRIDE;
 
-    static bool truncate(QString *error);
+    static bool truncate(QString *error = Q_NULLPTR);
 
-    static bool truncate(IqOrmAbstractDataSource *dataSource,
-                         QString *error);
+    static bool truncate(IqOrmTransactionControl transaction,
+                         QString *error = Q_NULLPTR);
 
     QList<T *> toList() const;
 

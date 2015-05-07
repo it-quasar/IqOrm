@@ -26,6 +26,7 @@
 #include "iqormmetamodel.h"
 #include "iqormabstracttriggers.h"
 #include "iqormobjectrawdata.h"
+#include "iqormdatasourceoperationplan.h"
 #include <QPointer>
 #include <QDebug>
 
@@ -61,18 +62,24 @@ IqOrmAbstractDataSource *IqOrmObject::dataSource() const
     return m_dataSource;
 }
 
-bool IqOrmObject::load(const qint64 id, bool autoTransaction)
+bool IqOrmObject::load(const qint64 objectId, IqOrmTransactionControl transaction)
 {
     m_lastError->clearError();
 
-    QString error;
-    if (triggers() && !triggers()->preLoad(this, id, &error)) {
-        m_lastError->setText(QObject::tr("Load aborted by preLoad() trigger with error: \"%0\"")
-                             .arg(error));
+    IqOrmAbstractDataSource *ds = usedDataSource();
+    Q_CHECK_PTR(ds);
+
+    if (transaction.isValid()
+            && transaction.dataSource() != ds) {
+        m_lastError->setText(QObject::tr("The transaction is open for another data source."));
         return false;
     }
 
-    if (id < 0) {
+    IqOrmTransactionControl transactionControl = transaction;
+    if (!transactionControl.isValid())
+        transactionControl = ds->transaction();
+
+    if (objectId < 0) {
         m_lastError->setText(QObject::tr("ObjectId must be > -1"));
         return false;
     }
@@ -82,13 +89,19 @@ bool IqOrmObject::load(const qint64 id, bool autoTransaction)
         return false;
     }
 
-    IqOrmAbstractDataSource *ds = usedDataSource();
-    Q_CHECK_PTR(ds);
+    IqOrmDataSourceOperationPlan operationPlan;
+    operationPlan.setOperation(IqOrmAbstractDataSource::Load);
+    operationPlan.setObjectId(objectId);
+    operationPlan.setDataSource(ds);
 
-    IqOrmTransactionControl transactionControl;
-    if (autoTransaction)
-        transactionControl = ds->transaction();
-    IqOrmDataSourceOperationResult result = ds->objectDataSource()->loadObjectById(this, id);
+    QString error;
+    if (triggers() && !triggers()->preLoad(this, transactionControl, operationPlan, &error)) {
+        m_lastError->setText(QObject::tr("Load aborted by preLoad() trigger with error: \"%0\"")
+                             .arg(error));
+        return false;
+    }
+
+    IqOrmDataSourceOperationResult result = ds->objectDataSource()->loadObjectById(this, objectId);
 
     if (result) {
         //Сохраним значения источника
@@ -99,13 +112,14 @@ bool IqOrmObject::load(const qint64 id, bool autoTransaction)
     }
 
     if (result) {
-        if (triggers() && !triggers()->postLoad(this, id, result, &error)) {
-        m_lastError->setText(QObject::tr("Load aborted by postLoad() trigger with error: \"%0\"")
-                             .arg(error));
+        if (triggers()
+                && !triggers()->postLoad(this, transactionControl, result, &error)) {
+            m_lastError->setText(QObject::tr("Load aborted by postLoad() trigger with error: \"%0\"")
+                                 .arg(error));
             return false;
         }
 
-        if (autoTransaction)
+        if (!transaction.isValid())
             transactionControl.commit();
     } else {
         m_lastError->setText(result.error());
@@ -114,12 +128,12 @@ bool IqOrmObject::load(const qint64 id, bool autoTransaction)
     return result;
 }
 
-bool IqOrmObject::load(bool autoTransaction)
+bool IqOrmObject::load(IqOrmTransactionControl transaction)
 {
-    return reload(autoTransaction);
+    return reload(transaction);
 }
 
-bool IqOrmObject::reload(bool autoTransaction)
+bool IqOrmObject::reload(IqOrmTransactionControl transaction)
 {
     m_lastError->clearError();
 
@@ -128,7 +142,7 @@ bool IqOrmObject::reload(bool autoTransaction)
         return false;
     }
 
-    return load(objectId(), autoTransaction);
+    return load(objectId(), transaction);
 }
 
 void IqOrmObject::setDataSource(IqOrmAbstractDataSource *dataSource)
@@ -160,9 +174,27 @@ IqOrmAbstractDataSource *IqOrmObject::usedDataSource() const
     return coreDataSource;
 }
 
-bool IqOrmObject::save(bool autoTransaction)
+bool IqOrmObject::save(IqOrmTransactionControl transaction)
 {
     m_lastError->clearError();
+
+    IqOrmAbstractDataSource *ds = usedDataSource();
+    Q_CHECK_PTR (ds);
+
+    if (transaction.isValid()
+            && transaction.dataSource() != ds) {
+        m_lastError->setText(QObject::tr("The transaction is open for another data source."));
+        return false;
+    }
+
+    IqOrmTransactionControl transactionControl = transaction;
+    if (!transactionControl.isValid())
+        transactionControl = ds->transaction();
+
+    if (!ormMetaModel()) {
+        m_lastError->setText(QObject::tr("Not found valid object ORM model."));
+        return false;
+    }
 
     bool isNewObject = !isSavedToDataSource();
     bool isLoadedObject = !isNewObject && isLoadedFromDataSource();
@@ -173,40 +205,38 @@ bool IqOrmObject::save(bool autoTransaction)
                                          "not save(). Use load() or reload() first."));
     }
 
-    IqOrmAbstractTriggers::SaveType saveType = isNewObject?IqOrmAbstractTriggers::Persist:IqOrmAbstractTriggers::Update;
+    IqOrmAbstractDataSource::Operation operation = isNewObject?IqOrmAbstractDataSource::Persist:IqOrmAbstractDataSource::Update;
 
-    QList<const IqOrmPropertyDescription *> propertiesToSave;
-    switch (saveType) {
-    case IqOrmAbstractTriggers::Persist:
+    QSet<const IqOrmPropertyDescription *> propertiesToSave;
+    switch (operation) {
+    case IqOrmAbstractDataSource::Persist:
+        propertiesToSave = ormMetaModel()->propertyDescriptions();
         break;
-    case IqOrmAbstractTriggers::Update:
+    case IqOrmAbstractDataSource::Update:
         propertiesToSave = sourcePropertyChanges();
+        break;
+    default:
         break;
     }
 
+    IqOrmDataSourceOperationPlan operationPlan;
+    operationPlan.setOperation(operation);
+    operationPlan.setObjectId(objectId());
+    operationPlan.setDataSource(ds);
+    operationPlan.setChangedProperites(propertiesToSave);
+
     QString error;
-    if (triggers() && !triggers()->preSave(this, saveType, propertiesToSave, &error)) {
+    if (triggers()
+            && !triggers()->preSave(this, transactionControl, operationPlan, &error)) {
             m_lastError->setText(QObject::tr("Save aborted by preSave() trigger with error: \"%0\"")
                                  .arg(error));
             return false;
     }
 
-    if (!ormMetaModel()) {
-        m_lastError->setText(QObject::tr("Not found valid object ORM model."));
-        return false;
-    }
-
-    IqOrmAbstractDataSource *ds = usedDataSource();
-    Q_CHECK_PTR (ds);
-
     IqOrmDataSourceOperationResult result;
 
-    IqOrmTransactionControl transactionControl;
-    if (autoTransaction)
-        transactionControl = ds->transaction();
-
-    switch (saveType) {
-    case IqOrmAbstractTriggers::Persist: {
+    switch (operation) {
+    case IqOrmAbstractDataSource::Persist: {
         //Создаем новый объект
         result = ds->objectDataSource()->insertObject(this);
 
@@ -215,7 +245,7 @@ bool IqOrmObject::save(bool autoTransaction)
 
         break;
     }
-    case IqOrmAbstractTriggers::Update: {
+    case IqOrmAbstractDataSource::Update: {
         if (propertiesToSave.isEmpty()) {
             qDebug() << QObject::tr("Call save() for an object that has no changes.");
             return true;
@@ -229,16 +259,19 @@ bool IqOrmObject::save(bool autoTransaction)
 
         break;
     }
+    default:
+        break;
     }
 
     if (result) {
-        if (triggers() && !triggers()->postSave(this, saveType, result, &error)) {
+        if (triggers()
+                && !triggers()->postSave(this, transactionControl, result, &error)) {
             m_lastError->setText(QObject::tr("Save aborted by postSave() trigger with error: \"%0\"")
                                  .arg(error));
             return false;
         }
 
-        if (autoTransaction)
+        if (!transaction.isValid())
             transactionControl.commit();
     } else {
         m_lastError->setText(result.error());
@@ -262,14 +295,25 @@ void IqOrmObject::setObjectId(qint64 objectId)
     }
 }
 
-bool IqOrmObject::remove(bool autoTransaction)
+bool IqOrmObject::remove(IqOrmTransactionControl transaction)
 {
     m_lastError->clearError();
 
-    QString error;
-    if (triggers() && !triggers()->preRemove(this, &error)) {
-        m_lastError->setText(QObject::tr("Remove aborted by preRemove() trigger with error: \"%0\"")
-                             .arg(error));
+    IqOrmAbstractDataSource *ds = usedDataSource();
+    Q_CHECK_PTR (ds);
+
+    if (transaction.isValid()
+            && transaction.dataSource() != ds) {
+        m_lastError->setText(QObject::tr("The transaction is open for another data source."));
+        return false;
+    }
+
+    IqOrmTransactionControl transactionControl = transaction;
+    if (!transactionControl.isValid())
+        transactionControl = ds->transaction();
+
+    if (!ormMetaModel()) {
+        m_lastError->setText(QObject::tr("Not found valid object ORM model."));
         return false;
     }
 
@@ -285,24 +329,30 @@ bool IqOrmObject::remove(bool autoTransaction)
             return false;
     }
 
-    IqOrmAbstractDataSource *ds = usedDataSource();
-    Q_CHECK_PTR (ds);
+    IqOrmDataSourceOperationPlan operationPlan;
+    operationPlan.setOperation(IqOrmAbstractDataSource::Remove);
+    operationPlan.setObjectId(objectId());
+    operationPlan.setDataSource(ds);
 
-    IqOrmTransactionControl transactionControl;
-    if (autoTransaction)
-        transactionControl = ds->transaction();
+    QString error;
+    if (triggers()
+            && !triggers()->preRemove(this, transactionControl, operationPlan, &error)) {
+        m_lastError->setText(QObject::tr("Remove aborted by preRemove() trigger with error: \"%0\"")
+                             .arg(error));
+        return false;
+    }
 
-    qint64 id = objectId();
     IqOrmDataSourceOperationResult result = ds->objectDataSource()->removeObject(this);
 
     if (result) {
-        if (triggers() && !triggers()->postRemove(this, id, result, &error)) {
+        if (triggers()
+                && !triggers()->postRemove(this, transactionControl, result, &error)) {
             m_lastError->setText(QObject::tr("Remove aborted by postRemove() trigger with error: \"%0\"")
                                  .arg(error));
             return false;
         }
 
-        if (autoTransaction)
+        if (!transaction.isValid())
             transactionControl.commit();
     } else {
         m_lastError->setText(result.error());
@@ -342,9 +392,9 @@ void IqOrmObject::clearSourcePropertyValues()
     m_sourcePropertyValues.clear();
 }
 
-QList<const IqOrmPropertyDescription *> IqOrmObject::sourcePropertyChanges() const
+QSet<const IqOrmPropertyDescription *> IqOrmObject::sourcePropertyChanges() const
 {
-    QList<const IqOrmPropertyDescription *> result;
+    QSet<const IqOrmPropertyDescription *> result;
     foreach (const IqOrmPropertyDescription *propDescription, ormMetaModel()->propertyDescriptions()) {
         Q_CHECK_PTR(propDescription);
         switch (propDescription->storedValue()) {

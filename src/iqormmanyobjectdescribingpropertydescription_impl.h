@@ -24,7 +24,7 @@
 #include "iqormpointerset.h"
 #include "iqormsharedpointerset.h"
 #include "iqormlazypointerset.h"
-#include "iqormlazysharedpointerset.h"
+#include "iqormsharedlazypointerset.h"
 #include "iqormdirectmappedpropertydescription.h"
 #include "iqorminversedmappedpropertydescription.h"
 #include "iqormoneobjectdescribingpropertydescription.h"
@@ -108,17 +108,17 @@ bool IqOrmManyObjectDescribingPropertyDescription::setPropertyValueFromObjectIds
             pointersList << pointer;
         }
         return propertyDescription->setValue(object, QVariant::fromValue(pointersList));
-    } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<IqOrmLazySharedPointerSet<T> >()))) {
-        IqOrmLazySharedPointerSet<T> pointersList;
+    } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<IqOrmSharedLazyPointerSet<T> >()))) {
+        IqOrmSharedLazyPointerSet<T> pointersList;
         foreach (const QVariant &objectId, objectIds) {
             bool ok;
             qint64 intObjectId = objectId.toLongLong(&ok);
             if (!ok)
                 return false;
 
-            IqOrmLazySharedPointer<T> pointer;
+            IqOrmSharedLazyPointer<T> pointer;
             if (!objectId.isNull())
-                pointer = IqOrmLazySharedPointer<T>(intObjectId);
+                pointer = IqOrmSharedLazyPointer<T>(intObjectId);
             pointersList << pointer;
         }
         return propertyDescription->setValue(object, QVariant::fromValue(pointersList));
@@ -175,9 +175,9 @@ QVariantList IqOrmManyObjectDescribingPropertyDescription::propertyValueAsObject
             else
                 objectIds << QVariant(QVariant::LongLong);
         }
-    } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<IqOrmLazySharedPointerSet<T> >()))) {
-        IqOrmLazySharedPointerSet<T> valueObjectsList = propertyValue.value<IqOrmLazySharedPointerSet<T> >();
-        foreach (const IqOrmLazySharedPointer<T> &pointer, valueObjectsList) {
+    } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<IqOrmSharedLazyPointerSet<T> >()))) {
+        IqOrmSharedLazyPointerSet<T> valueObjectsList = propertyValue.value<IqOrmSharedLazyPointerSet<T> >();
+        foreach (const IqOrmSharedLazyPointer<T> &pointer, valueObjectsList) {
             if (!pointer.isNull())
                 objectIds << pointer.objectId();
             else

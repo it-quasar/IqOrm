@@ -43,7 +43,7 @@ IqOrmObject * IqOrmModel<T>::createChildObject() const
     //Не передавать новому объекту в конструктор lastDataSource(), т.к. датосурс кастится к QObject
     //и принимается за родителя!!!
     T* newObject = new T();
-    newObject->setDataSource(lastDataSource());
+    newObject->setDataSource(usedDataSource());
     newObject->setParent(const_cast<IqOrmModel<T> *>(this));
     return newObject;
 }
@@ -92,13 +92,13 @@ T *IqOrmModel<T>::take(IqOrmObject *object)
 template <class T>
 bool IqOrmModel<T>::truncate(QString *error)
 {
-    return processTruncate(staticChidsOrmModel(), IqOrmCore::dataSource(), error);
+    return processTruncate(staticChidsOrmModel(), IqOrmTransactionControl(), IqOrmCore::dataSource(), error);
 }
 
 template <class T>
-bool IqOrmModel<T>::truncate(IqOrmAbstractDataSource *dataSource, QString *error)
+bool IqOrmModel<T>::truncate(IqOrmTransactionControl transaction, QString *error)
 {
-    return processTruncate(staticChidsOrmModel(), dataSource, error);
+    return processTruncate(staticChidsOrmModel(), transaction, IqOrmCore::dataSource(), error);
 }
 
 template <class T>

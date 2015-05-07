@@ -43,7 +43,7 @@ public:
 
 //    virtual bool loadObjectManyToManyReference(IqOrmObject *object, const QString &referenceProperty) const = 0;
 
-    virtual IqOrmDataSourceOperationResult updateObject(IqOrmObject* object, const QList<const IqOrmPropertyDescription *> &properties) = 0;
+    virtual IqOrmDataSourceOperationResult updateObject(IqOrmObject* object, const QSet<const IqOrmPropertyDescription *> &properties) = 0;
 
     virtual IqOrmDataSourceOperationResult insertObject(IqOrmObject *object) = 0;
 

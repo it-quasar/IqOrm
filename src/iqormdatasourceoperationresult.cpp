@@ -20,7 +20,32 @@
 #include "iqormdatasourceoperationresult.h"
 #include "iqormabstractdatasource.h"
 
+
+IqOrmAbstractDataSource::Operation IqOrmDataSourceOperationResult::operation() const
+{
+    return d->operation;
+}
+
+void IqOrmDataSourceOperationResult::setOperation(const IqOrmAbstractDataSource::Operation &operation)
+{
+    if (d->operation != operation)
+        d->operation = operation;
+}
+
+qint64 IqOrmDataSourceOperationResult::objectId() const
+{
+    return d->objectId;
+}
+
+void IqOrmDataSourceOperationResult::setObjectId(qint64 objectId)
+{
+    if (d->objectId != objectId)
+        d->objectId = objectId;
+}
+
 IqOrmDataSourceOperationResult::IqOrmDataSourceOperationResultData::IqOrmDataSourceOperationResultData():
+    objectId(-1),
+    operation(IqOrmAbstractDataSource::NotSetOperation),
     dataSource(Q_NULLPTR)
 {
 }
@@ -67,6 +92,11 @@ void IqOrmDataSourceOperationResult::setError(const QString &error)
 {
     if (d->error != error)
         d->error = error;
+}
+
+IqOrmAbstractDataSource *IqOrmDataSourceOperationResult::dataSource() const
+{
+    return d->dataSource;
 }
 
 QList<IqOrmDataSourceChanges> IqOrmDataSourceOperationResult::allChanges() const

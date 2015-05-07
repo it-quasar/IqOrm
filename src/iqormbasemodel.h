@@ -27,11 +27,13 @@
 #include "iqorm_global.h"
 #include "iqormfilter.h"
 #include "iqormobjectrawdata.h"
+#include "iqormtransactioncontrol.h"
 
 class IqOrmMetaModel;
 class IqOrmObject;
 class IqOrmAbstractDataSource;
 class IqOrmError;
+
 namespace IqOrmPrivate {
 class IqOrmModelPrivateAccessor;
 }
@@ -42,6 +44,7 @@ class IQORMSHARED_EXPORT IqOrmBaseModel : public QAbstractTableModel
     Q_PROPERTY(IqOrmAbstractFilter * filters READ filters WRITE setFilters NOTIFY filtersChanged)
     Q_PROPERTY(IqOrmError * lastError READ lastError CONSTANT)
     Q_PROPERTY(qint64 count READ count NOTIFY countChanged)
+    Q_PROPERTY(IqOrmAbstractDataSource * dataSource READ dataSource WRITE setDataSource NOTIFY dataSourceChanged)
 
 public:
     enum OrderBy
@@ -82,28 +85,28 @@ public:
     bool find(const QString &propertyName,
               IqOrmFilter::Condition operation,
               const QVariant &value,
-              IqOrmAbstractDataSource *dataSource = Q_NULLPTR);
+              IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
     bool find(const QString &propertyName,
               IqOrmFilter::Condition operation,
               const QVariant &value,
               Qt::CaseSensitivity caseSensitivity,
-              IqOrmAbstractDataSource *dataSource = Q_NULLPTR);
+              IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
-    Q_INVOKABLE bool load(IqOrmAbstractDataSource *dataSource);
+    Q_INVOKABLE bool load(IqOrmTransactionControl transaction);
 
     Q_INVOKABLE bool load(qint64 limit = -1,
                           qint64 offset = 0,
                           OrderBy orderBy = Asc,
-                          IqOrmAbstractDataSource *dataSource = Q_NULLPTR);
+                          IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
     Q_INVOKABLE bool loadFirst(qint64 count,
-                               IqOrmAbstractDataSource *dataSource = Q_NULLPTR);
+                               IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
     Q_INVOKABLE bool loadLast(qint64 count,
-                              IqOrmAbstractDataSource *dataSource = Q_NULLPTR);
+                              IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
-    Q_INVOKABLE bool truncate(IqOrmAbstractDataSource *dataSource = Q_NULLPTR);
+    Q_INVOKABLE bool truncate(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
 
     qint64 count() const;
@@ -113,8 +116,6 @@ public:
     int rowOf(const IqOrmObject* object) const;
 
     QList<IqOrmObject *> toObjectList();
-
-    IqOrmAbstractDataSource *lastDataSource() const;
 
     void clear();
 
@@ -154,8 +155,11 @@ protected:
 
     void addPropertySiagnalIndex(const QString& property, int signalIndex);
     static bool processTruncate(const IqOrmMetaModel *childOrmModel,
+                                IqOrmTransactionControl transaction,
                                 IqOrmAbstractDataSource *dataSource,
                                 QString *error);
+
+    IqOrmAbstractDataSource *usedDataSource() const;
 
 public:
     IqOrmError *lastError() const;
@@ -166,9 +170,13 @@ public:
     bool childChangeMonitoring() const;
     void setChildChangeMonitoring(bool childChangeMonitoring);
 
+    IqOrmAbstractDataSource *dataSource() const;
+    void setDataSource(IqOrmAbstractDataSource *dataSource);
+
 signals:
     void filtersChanged();
     void countChanged();
+    void dataSourceChanged();
 
 private slots:
     void onObjectChanged();
@@ -197,7 +205,7 @@ private:
     QMetaMethod m_onObjectChangedMethod;
     IqOrmAbstractFilter *m_filters;
     IqOrmError *m_lastError;
-    QPointer<IqOrmAbstractDataSource> m_lastDataSource;
+    IqOrmAbstractDataSource *m_dataSource;
 
     QList<IqOrmModelItem *> m_items;
     QHash<const IqOrmObject *, qint64> m_objectRows;

@@ -17,4 +17,47 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#include "iqormlazysharedpointer.h"
+#ifndef IQORMDATASOURCEOPERATIONPLAN_H
+#define IQORMDATASOURCEOPERATIONPLAN_H
+
+#include <QObject>
+#include <QSharedData>
+#include <QSet>
+#include "iqormabstractdatasource.h"
+#include "iqorm_global.h"
+#include "iqormpropertydescription.h"
+
+class IQORMSHARED_EXPORT IqOrmDataSourceOperationPlan
+{
+public:
+    IqOrmDataSourceOperationPlan();
+
+public:
+    IqOrmAbstractDataSource::Operation operation() const;
+    void setOperation(const IqOrmAbstractDataSource::Operation &operation);
+
+    qint64 objectId() const;
+    void setObjectId(qint64 objectId);
+
+    IqOrmAbstractDataSource *dataSource() const;
+    void setDataSource(IqOrmAbstractDataSource *dataSource);
+
+    QSet<const IqOrmPropertyDescription *> changedProperties() const;
+    void setChangedProperites(const QSet<const IqOrmPropertyDescription *> &properites);
+
+private:
+    class IqOrmDataSourceOperationPlanData: public QSharedData
+    {
+    public:
+        qint64 objectId;
+        IqOrmAbstractDataSource::Operation operation;
+        IqOrmAbstractDataSource *dataSource;
+        QSet<const IqOrmPropertyDescription *> changedProperties;
+
+        IqOrmDataSourceOperationPlanData();
+        ~IqOrmDataSourceOperationPlanData();
+    };
+    QSharedDataPointer<IqOrmDataSourceOperationPlanData> d;
+};
+
+#endif // IQORMDATASOURCEOPERATIONPLAN_H

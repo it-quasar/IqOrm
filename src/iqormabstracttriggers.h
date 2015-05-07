@@ -22,32 +22,29 @@
 
 #include <QObject>
 #include "iqormobject.h"
+#include "iqormdatasourceoperationplan.h"
 #include "iqormdatasourceoperationresult.h"
 #include "iqorm_global.h"
+#include "iqormtransactioncontrol.h"
 
 class IQORMSHARED_EXPORT IqOrmAbstractTriggers : public QObject
 {
     Q_OBJECT
 public:
-    enum SaveType {
-        Persist,
-        Update
-    };
-
     explicit IqOrmAbstractTriggers(QObject *parent = Q_NULLPTR);
     virtual ~IqOrmAbstractTriggers();
 
-    virtual bool preLoad(IqOrmObject *object, qint64 objectId, QString *errorText = Q_NULLPTR);
+    virtual bool preLoad(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationPlan &operationPlan, QString *errorText);
 
-    virtual bool postLoad(IqOrmObject *object, qint64 objectId, const IqOrmDataSourceOperationResult &operationResult, QString *errorText = Q_NULLPTR);
+    virtual bool postLoad(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationResult &operationResult, QString *errorText);
 
-    virtual bool preSave(IqOrmObject *object, SaveType saveType, const QList<const IqOrmPropertyDescription*> propertiesToSave, QString *errorText = Q_NULLPTR);
+    virtual bool preSave(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationPlan &operationPlan, QString *errorText);
 
-    virtual bool postSave(IqOrmObject *object, SaveType saveType, const IqOrmDataSourceOperationResult &operationResult, QString *errorText = Q_NULLPTR);
+    virtual bool postSave(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationResult &operationResult, QString *errorText);
 
-    virtual bool preRemove(IqOrmObject *object, QString *errorText = Q_NULLPTR);
+    virtual bool preRemove(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationPlan &operationPlan, QString *errorText);
 
-    virtual bool postRemove(IqOrmObject *object, qint64 objectId, const IqOrmDataSourceOperationResult &operationResult, QString *errorText = Q_NULLPTR);
+    virtual bool postRemove(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationResult &operationResult, QString *errorText);
 };
 
 #endif // IQORMABSTRACTTRIGGERS_H

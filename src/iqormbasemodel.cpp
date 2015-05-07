@@ -29,9 +29,14 @@
 #include "iqormerror.h"
 #include "iqormfilter.h"
 #include "iqormdatasourceoperationresult.h"
+#include "iqormdatasourceoperationplan.h"
+#include "iqormdatasourceoperationresult.h"
+#include "iqormabstracttriggers.h"
 #include "iqormobjectrawdata.h"
+#include "iqormtransactioncontrol.h"
 #include <QMetaProperty>
 #include <QQuickItem>
+#include <QDebug>
 
 IqOrmBaseModel::IqOrmModelItem::IqOrmModelItem() :
     object(Q_NULLPTR),
@@ -43,7 +48,7 @@ IqOrmBaseModel::IqOrmBaseModel(QObject *parent) :
     QAbstractTableModel(parent),
     m_filters(NULL),
     m_lastError(new IqOrmError(this)),
-    m_lastDataSource(Q_NULLPTR),
+    m_dataSource(Q_NULLPTR),
     m_childChangeMonitoring(false)
 {
     int indexOfOnObjectChangedMethod = this->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("onObjectChanged()").constData());
@@ -125,45 +130,40 @@ QObject *IqOrmBaseModel::last()
     return get(rowCount() - 1);
 }
 
-bool IqOrmBaseModel::find(const QString &propertyName, IqOrmFilter::Condition operation, const QVariant &value, IqOrmAbstractDataSource *dataSource)
+bool IqOrmBaseModel::find(const QString &propertyName, IqOrmFilter::Condition operation, const QVariant &value, IqOrmTransactionControl transaction)
 {
-    return find(propertyName, operation, value, Qt::CaseSensitive, dataSource);
+    return find(propertyName, operation, value, Qt::CaseSensitive, transaction);
 }
 
-bool IqOrmBaseModel::find(const QString &propertyName, IqOrmFilter::Condition operation, const QVariant &value, Qt::CaseSensitivity caseSensitivity, IqOrmAbstractDataSource *dataSource)
+bool IqOrmBaseModel::find(const QString &propertyName, IqOrmFilter::Condition operation, const QVariant &value, Qt::CaseSensitivity caseSensitivity, IqOrmTransactionControl transaction)
 {
     IqOrmFilter *filter = new IqOrmFilter(propertyName, operation, value, this);
     filter->setCaseSensitivity(caseSensitivity);
     setFilters(filter);
-    return load(dataSource);
+    return load(transaction);
 }
 
-bool IqOrmBaseModel::load(IqOrmAbstractDataSource *dataSource)
+bool IqOrmBaseModel::load(IqOrmTransactionControl transaction)
 {
-    return load(-1, 0, Asc, dataSource);
+    return load(-1, 0, Asc, transaction);
 }
 
-bool IqOrmBaseModel::load(qint64 limit, qint64 offset, IqOrmBaseModel::OrderBy orderBy, IqOrmAbstractDataSource *dataSource)
+bool IqOrmBaseModel::load(qint64 limit, qint64 offset, OrderBy orderBy, IqOrmTransactionControl transaction)
 {
     lastError()->clearError();
 
-    if (dataSource) {
-        if (m_lastDataSource.data() != dataSource)
-            m_lastDataSource = dataSource;
-    }
+    IqOrmAbstractDataSource *ds = usedDataSource();
+    Q_CHECK_PTR(ds);
 
-    if (!m_lastDataSource)
-        m_lastDataSource = IqOrmCore::dataSource();
-
-    if (!m_lastDataSource) {
-        lastError()->setText(QObject::tr("Not found any Data Source. Use IQORMCore::setDataSource() first."));
+    if (transaction.isValid()
+            && transaction.dataSource() != ds) {
+        m_lastError->setText(QObject::tr("The transaction is open for another data source."));
         return false;
     }
 
-    if (!m_lastDataSource->objectsModelDataSource()) {
-        lastError()->setText(QObject::tr("Not found any Objects Model Data Source. Maybe Data Source broken, check Data Source."));
-        return false;
-    }
+    IqOrmTransactionControl transactionControl = transaction;
+    if (!transactionControl.isValid())
+        transactionControl = ds->transaction();
 
     const IqOrmMetaModel *ormModel = childsOrmMetaModel();
     if (!ormModel) {
@@ -182,12 +182,11 @@ bool IqOrmBaseModel::load(qint64 limit, qint64 offset, IqOrmBaseModel::OrderBy o
 
     }
 
-    IqOrmTransactionControl transactionControl = m_lastDataSource->transaction();
-
-    IqOrmDataSourceOperationResult result = m_lastDataSource->objectsModelDataSource()->loadModel(this, limit, offset, dataSourceOrderBy);
+    IqOrmDataSourceOperationResult result = ds->objectsModelDataSource()->loadModel(this, limit, offset, dataSourceOrderBy);
 
     if (result) {
-        transactionControl.commit();
+        if (!transaction.isValid())
+            transactionControl.commit();
     } else {
         lastError()->setText(result.error());
     }
@@ -253,30 +252,28 @@ void IqOrmBaseModel::setFilters(IqOrmAbstractFilter *filters)
     }
 }
 
-bool IqOrmBaseModel::loadFirst(qint64 count, IqOrmAbstractDataSource *dataSource)
+bool IqOrmBaseModel::loadFirst(qint64 count, IqOrmTransactionControl transaction)
 {
-    return load(count, 0, Asc, dataSource);
+    return load(count, 0, Asc, transaction);
 }
 
-bool IqOrmBaseModel::loadLast(qint64 count, IqOrmAbstractDataSource *dataSource)
+bool IqOrmBaseModel::loadLast(qint64 count, IqOrmTransactionControl transaction)
 {
-    return load(count, 0, Desc, dataSource);
+    return load(count, 0, Desc, transaction);
 }
 
-bool IqOrmBaseModel::truncate(IqOrmAbstractDataSource *dataSource)
+bool IqOrmBaseModel::truncate(IqOrmTransactionControl transaction)
 {
     lastError()->clearError();
 
-    if (dataSource) {
-        if (m_lastDataSource.data() != dataSource)
-            m_lastDataSource = dataSource;
+    const IqOrmMetaModel *ormModel = childsOrmMetaModel();
+    if (!ormModel) {
+        lastError()->setText(QObject::tr("Not found valid child objects ORM model."));
+        return false;
     }
 
-    if (!m_lastDataSource)
-        m_lastDataSource = IqOrmCore::dataSource();
-
     QString error;
-    bool result = processTruncate(childsOrmMetaModel(), m_lastDataSource, &error);
+    bool result = processTruncate(ormModel, transaction, usedDataSource(), &error);
 
     if (result)
         clear();
@@ -478,8 +475,53 @@ void IqOrmBaseModel::createItemObject(IqOrmBaseModel::IqOrmModelItem *item, qint
     Q_CHECK_PTR(item);
     if (!item->object) {
         IqOrmObject *itemObject = createChildObject();
+
+        IqOrmAbstractTriggers *triggers = IqOrmPrivate::IqOrmObjectPrivateAccessor::triggers(itemObject);
+        IqOrmAbstractDataSource *ds = usedDataSource();
+        Q_CHECK_PTR (ds);
+        IqOrmTransactionControl transactionControll;
+        bool triggersOk = true;
+        if (triggers)
+            transactionControll = ds->transaction();
+
+        if (triggers) {
+            IqOrmDataSourceOperationPlan operationPlan;
+            operationPlan.setOperation(IqOrmAbstractDataSource::Load);
+            operationPlan.setObjectId(item->rawData.objectId);
+            operationPlan.setDataSource(ds);
+
+            QString error;
+            bool result = triggers->preLoad(itemObject, transactionControll, operationPlan, &error);
+            if (!result)
+                qWarning("On create IqOrmModel<%s> item object pre load triggers return error: \"%s\".",
+                         childsOrmMetaModel()->targetStaticMetaObject()->className(),
+                         error.toLocal8Bit().constData());
+
+            triggersOk = triggersOk && result;
+        }
+
         IqOrmPrivate::IqOrmObjectPrivateAccessor::setVaules(itemObject, item->rawData);
         IqOrmPrivate::IqOrmObjectPrivateAccessor::updateObjectSourceProperites(itemObject);
+
+        if (triggers) {
+            IqOrmDataSourceOperationResult operationResult;
+            operationResult.setOperation(IqOrmAbstractDataSource::Load);
+            operationResult.setObjectId(itemObject->objectId());
+            operationResult.setDataSource(usedDataSource());
+
+            QString error;
+            bool result = triggers->postLoad(itemObject, transactionControll, operationResult, &error);
+            if (!result)
+                qWarning("On create IqOrmModel<%s> item object post load triggers return error: \"%s\".",
+                         childsOrmMetaModel()->targetStaticMetaObject()->className(),
+                         error.toLocal8Bit().constData());
+
+            triggersOk = triggersOk && result;
+        }
+
+        if (triggers && triggersOk)
+            transactionControll.commit();
+
         item->object = itemObject;
         item->qobject = dynamic_cast<QObject *>(itemObject);
         if (m_childChangeMonitoring)
@@ -489,6 +531,25 @@ void IqOrmBaseModel::createItemObject(IqOrmBaseModel::IqOrmModelItem *item, qint
         m_objectRows.insert(const_cast<const IqOrmObject *>(item->object), row);
     }
 }
+
+IqOrmAbstractDataSource *IqOrmBaseModel::dataSource() const
+{
+    return m_dataSource;
+}
+
+void IqOrmBaseModel::setDataSource(IqOrmAbstractDataSource *dataSource)
+{
+    if (m_dataSource != dataSource) {
+        m_dataSource = dataSource;
+        emit dataSourceChanged();
+
+        foreach (IqOrmModelItem *item, m_items) {
+            if (item->object)
+                item->object->setDataSource(dataSource);
+        }
+    }
+}
+
 
 bool IqOrmBaseModel::childChangeMonitoring() const
 {
@@ -605,11 +666,6 @@ int IqOrmBaseModel::rowOf(const IqOrmObject *object) const
     if (!m_objectRows.contains(object))
         return -1;
     return m_objectRows[object];
-}
-
-IqOrmAbstractDataSource *IqOrmBaseModel::lastDataSource() const
-{
-    return m_lastDataSource;
 }
 
 QVariant IqOrmBaseModel::headerData(int section, Qt::Orientation orientation, int role) const
@@ -813,43 +869,44 @@ void IqOrmBaseModel::addPropertySiagnalIndex(const QString &property, int signal
 }
 
 bool IqOrmBaseModel::processTruncate(const IqOrmMetaModel *childOrmModel,
+                                     IqOrmTransactionControl transaction,
                                      IqOrmAbstractDataSource *dataSource,
                                      QString *error)
 {
-    IqOrmAbstractDataSource *usedDataSource;
-    if (dataSource)
-        usedDataSource = dataSource;
-    else
-        usedDataSource = IqOrmCore::dataSource();
+    Q_CHECK_PTR(dataSource);
 
-    if (!usedDataSource) {
+    if (transaction.isValid()
+            && transaction.dataSource() != dataSource) {
         if (error)
-            *error = QObject::tr("Not found any Data Source. Use IQORMCore::setDataSource() first.");
+            *error = tr("The transaction is open for another data source.");
         return false;
     }
 
-    if (!usedDataSource->objectsModelDataSource()) {
-        if (error)
-            *error = QObject::tr("Not found any Objects Model Data Source. Maybe Data Source broken, check Data Source.");
-        return false;
-    }
+    IqOrmTransactionControl transactionControl = transaction;
+    if (!transactionControl.isValid())
+        transactionControl = dataSource->transaction();
 
-    if (!childOrmModel) {
-        if (error)
-            *error = QObject::tr("Not found valid child objects ORM model.");
-        return false;
-    }
-
-    IqOrmTransactionControl transactionControl = usedDataSource->transaction();
-
-    IqOrmDataSourceOperationResult result = usedDataSource->objectsModelDataSource()->truncateModel(childOrmModel);
+    IqOrmDataSourceOperationResult result = dataSource->objectsModelDataSource()->truncateModel(childOrmModel);
 
     if (result) {
-        transactionControl.commit();
+        if (!transaction.isValid())
+            transactionControl.commit();
     } else {
         if (error)
             *error = result.error();
     }
 
     return result;
+}
+
+IqOrmAbstractDataSource *IqOrmBaseModel::usedDataSource() const
+{
+    if (m_dataSource)
+        return m_dataSource;
+
+    IqOrmAbstractDataSource *coreDataSource = IqOrmCore::dataSource();
+    Q_CHECK_PTR (coreDataSource);
+    Q_CHECK_PTR(coreDataSource->objectDataSource());
+
+    return coreDataSource;
 }

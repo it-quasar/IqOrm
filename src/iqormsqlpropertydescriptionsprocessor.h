@@ -42,12 +42,12 @@ public:
     QStringList insertFieldNames(const IqOrmMetaModel *ormModel) const;
 
     QStringList updateFieldNames(const IqOrmMetaModel *ormModel,
-                                 const QList<const IqOrmPropertyDescription *> &propertyDescriptions) const;
+                                 const QSet<const IqOrmPropertyDescription *> &propertyDescriptions) const;
 
     QVariantList insertValues(const IqOrmObject *object) const;
 
     QVariantList updateValues(const IqOrmObject *object,
-                              const QList<const IqOrmPropertyDescription *> &propertyDescriptions) const;
+                              const QSet<const IqOrmPropertyDescription *> &propertyDescriptions) const;
 
     QList<IqOrmSqlJoinOperation> selectJoinOperations(const IqOrmMetaModel *ormModel) const;
 
@@ -58,7 +58,7 @@ public:
                        IqOrmDataSourceOperationResult *result) const ;
 
     bool updateAllowed(const IqOrmObject *object,
-                       const QList<const IqOrmPropertyDescription *> &propertyDescriptions,
+                       const QSet<const IqOrmPropertyDescription *> &propertyDescriptions,
                        IqOrmDataSourceOperationResult *result) const ;
 
     bool removeAllowed(const IqOrmObject *object,
@@ -71,7 +71,7 @@ public:
                    IqOrmDataSourceOperationResult *result) const;
 
     bool preUpdate(const IqOrmObject *object,
-                   const QList<const IqOrmPropertyDescription *> &propertyDescriptions,
+                   const QSet<const IqOrmPropertyDescription *> &propertyDescriptions,
                    IqOrmDataSourceOperationResult *result) const;
 
     bool preRemove(const IqOrmObject *object,
@@ -84,7 +84,7 @@ public:
                     IqOrmDataSourceOperationResult *result) const;
 
     bool postUpdate(const IqOrmObject *object,
-                    const QList<const IqOrmPropertyDescription *> &propertyDescriptions,
+                    const QSet<const IqOrmPropertyDescription *> &propertyDescriptions,
                     IqOrmDataSourceOperationResult *result) const;
 
     bool postRemove(const IqOrmObject *object,

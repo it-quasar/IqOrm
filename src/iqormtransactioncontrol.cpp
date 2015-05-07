@@ -43,6 +43,7 @@ IqOrmTransactionControl::IqOrmTransactionControl() :
 IqOrmTransactionControl::IqOrmTransactionControl(IqOrmAbstractDataSource *dataSource) :
     d(new IqOrmTransactionControlData)
 {
+    Q_CHECK_PTR(dataSource);
     d->dataSource = dataSource;
     d->transactionIsOpen = d->dataSource->openTransaction();
 }
@@ -51,13 +52,21 @@ IqOrmTransactionControl::~IqOrmTransactionControl()
 {
 }
 
+bool IqOrmTransactionControl::isValid() const
+{
+    QMutexLocker locker(&d->mutex);
+    return d->dataSource;
+}
+
 bool IqOrmTransactionControl::isTransactionOpen() const
 {
+    QMutexLocker locker(&d->mutex);
     return  d->transactionIsOpen;
 }
 
 bool IqOrmTransactionControl::commit()
 {
+    QMutexLocker locker(&d->mutex);
     Q_CHECK_PTR(d->dataSource);
     d->transactionIsOpen = false;
     return d->dataSource->commitTransaction();
@@ -65,7 +74,14 @@ bool IqOrmTransactionControl::commit()
 
 bool IqOrmTransactionControl::rollback()
 {
+    QMutexLocker locker(&d->mutex);
     Q_CHECK_PTR(d->dataSource);
     d->transactionIsOpen = false;
     return d->dataSource->rollbackTransaction();
+}
+
+IqOrmAbstractDataSource *IqOrmTransactionControl::dataSource() const
+{
+    QMutexLocker locker(&d->mutex);
+    return d->dataSource;
 }
