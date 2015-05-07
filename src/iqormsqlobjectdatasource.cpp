@@ -144,13 +144,16 @@ IqOrmObjectRawData IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(
     return rawData;
 }
 
-QString IqOrmSqlObjectDataSource::generateSelectQuery(const IqOrmMetaModel *ormModel) const
+QString IqOrmSqlObjectDataSource::generateSelectQuery(const IqOrmMetaModel *ormModel, bool distinct) const
 {
     Q_CHECK_PTR(ormModel);
 
     Q_ASSERT(!ormModel->tableName().isEmpty());
 
     QString queryStr = "SELECT ";
+    if (distinct)
+        queryStr.append(" DISTINCT ");
+
     QString tableName = m_sqlDataSource->escapedTableName(ormModel->tableName());
 
     QStringList columns;

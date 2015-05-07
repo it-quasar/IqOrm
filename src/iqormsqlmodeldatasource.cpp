@@ -66,7 +66,7 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
     bool ok = false;
     QString error;
     //Для генерации запроса используем генератор запросов объекта
-    QString queryStr = m_sqlDataSource->objectDataSource()->generateSelectQuery(ormModel);
+    QString queryStr = m_sqlDataSource->objectDataSource()->generateSelectQuery(ormModel, true);
     Q_ASSERT(!queryStr.isEmpty());
 
     QList<QVariant> bindValues;

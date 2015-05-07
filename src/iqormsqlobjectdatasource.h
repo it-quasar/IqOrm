@@ -61,7 +61,7 @@ private:
                                                                  bool *ok = Q_NULLPTR,
                                                                  QString *error = Q_NULLPTR);
 
-    QString generateSelectQuery(const IqOrmMetaModel *ormModel) const;
+    QString generateSelectQuery(const IqOrmMetaModel *ormModel, bool distinct = false) const;
 
 private:
     IqOrmSqlDataSource* m_sqlDataSource;
