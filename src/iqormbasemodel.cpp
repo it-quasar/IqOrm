@@ -171,7 +171,7 @@ bool IqOrmBaseModel::load(qint64 limit, qint64 offset, OrderBy orderBy, IqOrmTra
         return false;
     }
 
-    IqOrmAbstractModelDataSource::OrderBy dataSourceOrderBy;
+    IqOrmAbstractModelDataSource::OrderBy dataSourceOrderBy = IqOrmAbstractModelDataSource::Asc;
     switch (orderBy) {
     case Asc:
         dataSourceOrderBy = IqOrmAbstractModelDataSource::Asc;
@@ -179,7 +179,6 @@ bool IqOrmBaseModel::load(qint64 limit, qint64 offset, OrderBy orderBy, IqOrmTra
     case Desc:
         dataSourceOrderBy = IqOrmAbstractModelDataSource::Desc;
         break;
-
     }
 
     IqOrmDataSourceOperationResult result = ds->objectsModelDataSource()->loadModel(this, limit, offset, dataSourceOrderBy);

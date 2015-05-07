@@ -1,0 +1,36 @@
+1 VERSIONINFO
+FILEVERSION     0,8,0,0
+PRODUCTVERSION  0,8,0,0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904E4"
+    BEGIN
+      VALUE "CompanyName", "ItQuasar"
+      VALUE "FileDescription", "Simple and fast ORM library for Qt"
+      VALUE "FileVersion", "0.8"
+      VALUE "InternalName", "libIqOrm"
+      VALUE "LegalCopyright", "Copyright (C) 2015 Pavel A. Puchkov"
+      VALUE "OriginalFilename", "libIqOrm.dll"
+      VALUE "ProductName", "IqOrm"
+      VALUE "ProductVersion", "0.8"
+    END
+
+    BLOCK "041904E3"
+    BEGIN
+      VALUE "CompanyName", "ItQuasar"
+      VALUE "FileDescription", "Простая и быстрая ORM-библиотека для Qt"
+      VALUE "FileVersion", "0.8"
+      VALUE "InternalName", "libIqOrm"
+      VALUE "LegalCopyright", "Copyright (C) 2015 Павел А. Пучков"
+      VALUE "OriginalFilename", "libIqOrm.dll"
+      VALUE "ProductName", "IqOrm"
+      VALUE "ProductVersion", "0.8"
+    END
+  END
+
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0409, 1252, 0x0419, 1251
+  END
+END

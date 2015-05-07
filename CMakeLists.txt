@@ -31,7 +31,15 @@ source_group ("Header Files" FILES ${HEADERS})
 
 add_definitions (-DIQORM_LIBRARY)
 add_definitions (-DLIB_VERSION=${VERSION})
-add_library (${TARGET} SHARED ${SOURCES})
+
+set (VERSIONINFO_RES_FILE "")
+if(MINGW)
+    file (GLOB VERSIONINFO_RES_FILE . src/versioninfo.rc)
+    SET (CMAKE_RC_COMPILE_OBJECT
+            "<CMAKE_RC_COMPILER> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
+endif(MINGW)
+
+add_library (${TARGET} SHARED ${SOURCES} ${VERSIONINFO_RES_FILE})
 
 target_link_libraries (${TARGET} Qt5::Sql Qt5::Quick)
 
