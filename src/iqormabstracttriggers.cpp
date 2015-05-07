@@ -28,52 +28,55 @@ IqOrmAbstractTriggers::~IqOrmAbstractTriggers()
 {
 }
 
-bool IqOrmAbstractTriggers::preLoad(IqOrmObject *object, qint64 objectId, QString *errorText)
+bool IqOrmAbstractTriggers::preLoad(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationPlan &operationPlan, QString *errorText)
 {
     Q_UNUSED(object);
-    Q_UNUSED(objectId);
+    Q_UNUSED(transaction);
+    Q_UNUSED(operationPlan);
     Q_UNUSED(errorText);
     return true;
 }
 
-bool IqOrmAbstractTriggers::postLoad(IqOrmObject *object, qint64 objectId, const IqOrmDataSourceOperationResult &operationResult, QString *errorText)
+bool IqOrmAbstractTriggers::postLoad(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationResult &operationResult, QString *errorText)
 {
     Q_UNUSED(object);
-    Q_UNUSED(objectId);
+    Q_UNUSED(transaction);
     Q_UNUSED(operationResult);
     Q_UNUSED(errorText);
     return true;
 }
 
-bool IqOrmAbstractTriggers::preSave(IqOrmObject *object, IqOrmAbstractTriggers::SaveType saveType, const QList<const IqOrmPropertyDescription *> propertiesToSave, QString *errorText)
+bool IqOrmAbstractTriggers::preSave(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationPlan &operationPlan, QString *errorText)
 {
     Q_UNUSED(object);
-    Q_UNUSED(saveType);
-    Q_UNUSED(propertiesToSave);
+    Q_UNUSED(transaction);
+    Q_UNUSED(operationPlan);
     Q_UNUSED(errorText);
     return true;
 }
 
-bool IqOrmAbstractTriggers::postSave(IqOrmObject *object, IqOrmAbstractTriggers::SaveType saveType, const IqOrmDataSourceOperationResult &operationResult, QString *errorText)
+bool IqOrmAbstractTriggers::postSave(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationResult &operationResult, QString *errorText)
 {
     Q_UNUSED(object);
-    Q_UNUSED(saveType);
+    Q_UNUSED(transaction);
     Q_UNUSED(operationResult);
     Q_UNUSED(errorText);
     return true;
 }
 
-bool IqOrmAbstractTriggers::preRemove(IqOrmObject *object, QString *errorText)
+bool IqOrmAbstractTriggers::preRemove(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationPlan &operationPlan, QString *errorText)
 {
     Q_UNUSED(object);
+    Q_UNUSED(transaction);
+    Q_UNUSED(operationPlan);
     Q_UNUSED(errorText);
     return true;
 }
 
-bool IqOrmAbstractTriggers::postRemove(IqOrmObject *object, qint64 objectId, const IqOrmDataSourceOperationResult &operationResult, QString *errorText)
+bool IqOrmAbstractTriggers::postRemove(IqOrmObject *object, IqOrmTransactionControl transaction, const IqOrmDataSourceOperationResult &operationResult, QString *errorText)
 {
     Q_UNUSED(object);
-    Q_UNUSED(objectId);
+    Q_UNUSED(transaction);
     Q_UNUSED(operationResult);
     Q_UNUSED(errorText);
     return true;

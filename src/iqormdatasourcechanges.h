@@ -22,6 +22,7 @@
 
 #include <QSharedData>
 #include "iqormmetamodel.h"
+#include "iqormabstractdatasource.h"
 
 #include "iqormdirectpropertydescription.h"
 #include "iqormdirectpropertychanges.h"
@@ -33,18 +34,9 @@
 #include "iqorminversedmanytomanypropertychanges.h"
 #include "iqorm_global.h"
 
-class IqOrmAbstractDataSource;
-
 class IQORMSHARED_EXPORT IqOrmDataSourceChanges
 {
 public:
-    enum Operation
-    {
-        Persist,
-        Update,
-        Remove
-    };
-
     IqOrmDataSourceChanges();
 
 public:
@@ -57,8 +49,8 @@ public:
     const IqOrmMetaModel *objectOrmModel() const;
     void setObjectOrmModel(const IqOrmMetaModel *objectOrmModel);
 
-    Operation operation() const;
-    void setOperation(const Operation &operation);
+    IqOrmAbstractDataSource::Operation operation() const;
+    void setOperation(const IqOrmAbstractDataSource::Operation &operation);
 
     IqOrmDirectPropertyChanges *propertyChanges(const IqOrmDirectPropertyDescription *propetyDescription);
     IqOrmOneToOnePropertyChanges *propertyChanges(const IqOrmBaseOneToOnePropertyDescription *propertyDescription);
@@ -92,7 +84,7 @@ private:
         IqOrmAbstractDataSource *dataSource;
         int objectId;
         const IqOrmMetaModel *objectOrmModel;
-        Operation operation;
+        IqOrmAbstractDataSource::Operation operation;
         QHash<const IqOrmPropertyDescription *, IqOrmPropertyChanges *> propertiesChanges;
     };
 

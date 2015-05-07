@@ -17,4 +17,60 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#include "iqormlazypointer.h"
+#ifndef IQORMSHAREDLAZYPOINTER_H
+#define IQORMSHAREDLAZYPOINTER_H
+
+#include <QMetaType>
+#include <QExplicitlySharedDataPointer>
+#include "iqorm_global.h"
+
+class IqOrmMetaModel;
+
+namespace IqOrmPrivate {
+template <class T>
+class IqOrmSharedLazyPointerData;
+}
+
+template <class T>
+class IQORMSHARED_EXPORT IqOrmSharedLazyPointer
+{
+public:
+    IqOrmSharedLazyPointer();
+
+#ifdef Q_COMPILER_NULLPTR
+    IqOrmSharedLazyPointer(std::nullptr_t);
+#endif
+
+    explicit IqOrmSharedLazyPointer(T *object);
+
+    explicit IqOrmSharedLazyPointer(const qint64 objectId);
+
+    T* data() const;
+
+    qint64 objectId() const;
+
+    bool isNull() const;
+
+    const IqOrmMetaModel *staticOrmMetaModel() const;
+
+    T * operator->() const;
+    T & operator*() const;
+    operator T*() const;
+
+private:
+    template <class U>
+    friend bool operator==(const IqOrmSharedLazyPointer<U> &ptr1, const IqOrmSharedLazyPointer<U> &ptr2);
+
+    template <class U>
+    friend uint qHash(const IqOrmSharedLazyPointer<U> &key, uint seed);
+
+private:
+    QExplicitlySharedDataPointer<IqOrmPrivate::IqOrmSharedLazyPointerData<T> > d;
+};
+
+
+Q_DECLARE_SMART_POINTER_METATYPE(IqOrmSharedLazyPointer)
+
+#include "iqormsharedlazypointer_impl.h"
+
+#endif // IQORMSHAREDLAZYPOINTER_H

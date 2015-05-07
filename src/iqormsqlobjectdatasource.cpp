@@ -175,6 +175,9 @@ QString IqOrmSqlObjectDataSource::generateSelectQuery(const IqOrmMetaModel *ormM
 IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::loadObjectById(IqOrmObject *object, qint64 id) const
 {
     IqOrmDataSourceOperationResult result;
+    result.setOperation(IqOrmAbstractDataSource::Load);
+    result.setObjectId(id);
+
     Q_CHECK_PTR(m_sqlDataSource);
     result.setDataSource(m_sqlDataSource);
 
@@ -262,6 +265,8 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::loadObjectById(IqOrmObj
 IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::insertObject(IqOrmObject *object)
 {
     IqOrmDataSourceOperationResult result;
+    result.setOperation(IqOrmAbstractDataSource::Persist);
+
     Q_CHECK_PTR(m_sqlDataSource);
     result.setDataSource(m_sqlDataSource);
 
@@ -305,25 +310,30 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::insertObject(IqOrmObjec
     if (!ok)
         return result;
 
-    IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, query.lastInsertId().toInt());
+    qint64 objectId = query.lastInsertId().toInt();
+    IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, objectId);
 
     if (!m_propertyDescriptionsProcessor->postInsert(object, &result)) {
         IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, -1);
         return result;
     }
 
-    result.changes(ormModel, object->objectId())->setOperation(IqOrmDataSourceChanges::Persist);
+    result.setObjectId(objectId);
+    result.changes(ormModel, object->objectId())->setOperation(IqOrmAbstractDataSource::Persist);
     return result;
 }
 
 IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::updateObject(IqOrmObject *object,
-                                                                      const QList<const IqOrmPropertyDescription *> &properties)
+                                                                      const QSet<const IqOrmPropertyDescription *> &properties)
 {
+    Q_CHECK_PTR(object);
     IqOrmDataSourceOperationResult result;
+    result.setOperation(IqOrmAbstractDataSource::Update);
+    result.setObjectId(object->objectId());
+
     Q_CHECK_PTR(m_sqlDataSource);
     result.setDataSource(m_sqlDataSource);
 
-    Q_CHECK_PTR(object);
     Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
     Q_ASSERT((IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectSavedToDataSource(object)));
     Q_ASSERT(object->objectId() != -1);
@@ -372,18 +382,21 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::updateObject(IqOrmObjec
     if (!m_propertyDescriptionsProcessor->postUpdate(object, properties, &result))
         return result;
 
-    result.changes(ormModel, object->objectId())->setOperation(IqOrmDataSourceChanges::Update);
+    result.changes(ormModel, object->objectId())->setOperation(IqOrmAbstractDataSource::Update);
     return result;
 }
 
 
 IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::removeObject(IqOrmObject *object)
 {
+    Q_CHECK_PTR(object);
     IqOrmDataSourceOperationResult result;
+    result.setOperation(IqOrmAbstractDataSource::Remove);
+    result.setObjectId(object->objectId());
+
     Q_CHECK_PTR(m_sqlDataSource);
     result.setDataSource(m_sqlDataSource);
 
-    Q_CHECK_PTR(object);
     Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
     Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectSavedToDataSource(object));
     Q_ASSERT(object->objectId() != -1);
@@ -420,6 +433,6 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::removeObject(IqOrmObjec
 
     IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, -1);
 
-    result.changes(ormModel, object->objectId())->setOperation(IqOrmDataSourceChanges::Remove);
+    result.changes(ormModel, object->objectId())->setOperation(IqOrmAbstractDataSource::Remove);
     return result;
 }

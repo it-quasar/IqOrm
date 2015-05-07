@@ -43,7 +43,7 @@ public:
 
     virtual IqOrmDataSourceOperationResult loadObjectById(IqOrmObject* object, qint64 id) const Q_DECL_OVERRIDE;
 
-    virtual IqOrmDataSourceOperationResult updateObject(IqOrmObject* object, const QList<const IqOrmPropertyDescription *> &properties) Q_DECL_OVERRIDE;
+    virtual IqOrmDataSourceOperationResult updateObject(IqOrmObject* object, const QSet<const IqOrmPropertyDescription *> &properties) Q_DECL_OVERRIDE;
 
     virtual IqOrmDataSourceOperationResult insertObject(IqOrmObject *object) Q_DECL_OVERRIDE;
 

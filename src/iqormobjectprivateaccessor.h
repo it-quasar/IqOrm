@@ -26,6 +26,7 @@
 class IqOrmObject;
 class IqOrmPropertyDescription;
 class IqOrmObjectRawData;
+class IqOrmAbstractTriggers;
 
 namespace IqOrmPrivate {
 
@@ -48,6 +49,8 @@ public:
                                           bool isLoadedFromDataSource);
 
     static bool isObjectSavedToDataSource(const IqOrmObject *object);
+
+    static IqOrmAbstractTriggers *triggers(const IqOrmObject *object);
 };
 
 }

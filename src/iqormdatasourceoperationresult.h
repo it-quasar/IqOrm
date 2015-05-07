@@ -26,8 +26,6 @@
 #include "iqormdatasourcechanges.h"
 #include "iqorm_global.h"
 
-class IqOrmAbstractDataSource;
-
 class IQORMSHARED_EXPORT IqOrmDataSourceOperationResult
 {
 public:
@@ -37,26 +35,37 @@ public:
 
     bool result() const;
 
-    void setDataSource(IqOrmAbstractDataSource *dataSource);
-
     QList<IqOrmDataSourceChanges> allChanges() const;
 
     IqOrmDataSourceChanges *changes(const IqOrmMetaModel *model,
                                     qint64 objectId);
 
 public:
+    IqOrmAbstractDataSource::Operation operation() const;
+    void setOperation(const IqOrmAbstractDataSource::Operation &operation);
+
+    qint64 objectId() const;
+    void setObjectId(qint64 objectId);
+
     QString error() const;
     void setError(const QString &error);
+
+    IqOrmAbstractDataSource *dataSource() const;
+    void setDataSource(IqOrmAbstractDataSource *dataSource);
+
 
 private:
     class IqOrmDataSourceOperationResultData: public QSharedData
     {
     public:
+        qint64 objectId;
+        IqOrmAbstractDataSource::Operation operation;
         QString error;
-        IqOrmDataSourceOperationResultData();
-        ~IqOrmDataSourceOperationResultData();
         IqOrmAbstractDataSource *dataSource;
         QMultiHash<const IqOrmMetaModel*, IqOrmDataSourceChanges *> changes;
+
+        IqOrmDataSourceOperationResultData();
+        ~IqOrmDataSourceOperationResultData();
     };
     QSharedDataPointer<IqOrmDataSourceOperationResultData> d;
 };

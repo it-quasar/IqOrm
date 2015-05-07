@@ -39,13 +39,14 @@ IqOrmAbstractTriggers *IqOrmCore::defaultTriggers()
     return instance()->m_defaultTriggers;
 }
 
-void IqOrmCore::setDefaultTriggers(IqOrmAbstractTriggers *dafaultTriggers)
+void IqOrmCore::setDefaultTriggers(IqOrmAbstractTriggers *defaultTriggers)
 {
     QWriteLocker locker (&(instance()->m_defaultTriggersLock));
     if (instance()->m_defaultTriggers)
         instance()->m_defaultTriggers->deleteLater();
-    dafaultTriggers->setParent(instance());
-    instance()->m_defaultTriggers = dafaultTriggers;
+    if (defaultTriggers)
+        defaultTriggers->setParent(instance());
+    instance()->m_defaultTriggers = defaultTriggers;
 }
 
 

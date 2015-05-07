@@ -74,6 +74,10 @@ IqOrmAbstractTriggers *IqOrmMetaModel::triggers() const
 void IqOrmMetaModel::setTriggers(IqOrmAbstractTriggers *triggers)
 {
     if (m_triggers != triggers) {
+        if (m_triggers)
+            m_triggers->deleteLater();
+        if (triggers)
+            triggers->setParent(this);
         m_triggers = triggers;
         emit triggersChanged();
     }
@@ -92,7 +96,7 @@ bool IqOrmMetaModel::addPropertyOrmDescription(IqOrmPropertyDescription *descrip
         if (oldDescription->propertyName() == description->propertyName()) {
             IqOrmPropertyDescription *notConstOldDescription = const_cast<IqOrmPropertyDescription *>(oldDescription);
             notConstOldDescription->deleteLater();
-            m_propertyDescriptions.removeOne(oldDescription);
+            m_propertyDescriptions.remove(oldDescription);
             break;
         }
     }
@@ -128,7 +132,7 @@ void IqOrmMetaModel::setPropertyColumn(const QString &property,
         newDescription->deleteLater();
 }
 
-QList<const IqOrmPropertyDescription *> IqOrmMetaModel::propertyDescriptions() const
+QSet<const IqOrmPropertyDescription *> IqOrmMetaModel::propertyDescriptions() const
 {
     return m_propertyDescriptions;
 }

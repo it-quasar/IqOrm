@@ -72,4 +72,10 @@ bool IqOrmObjectPrivateAccessor::isObjectSavedToDataSource(const IqOrmObject *ob
     return object->isSavedToDataSource();
 }
 
+IqOrmAbstractTriggers *IqOrmObjectPrivateAccessor::triggers(const IqOrmObject *object)
+{
+    Q_CHECK_PTR(object);
+    return object->triggers();
+}
+
 }
