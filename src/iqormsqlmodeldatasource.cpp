@@ -452,11 +452,23 @@ QString IqOrmSqlModelDataSource::filterStringForDirectProperty(const IqOrmMetaMo
     default:
         //Ведем себя как с неизвестным типом
         bindValues->append(filter->value());
-        return columnCondition(columnName, propertyDesctiption->propertyName(), filter->condition(), ok, errorString);
+        bool conditionOk;
+        QString conditionError;
+        filterString = columnCondition(columnName, propertyDesctiption->propertyName(), filter->condition(), &conditionOk, &conditionError);
+        if (!conditionOk) {
+            *ok = false;
+            *errorString = conditionError;
+            return "";
+        }
         break;
     }
 
     *ok = true;
+
+    //Добавим NOT
+    if (filter->inverted())
+        filterString.prepend("NOT ");
+
     return filterString;
 }
 

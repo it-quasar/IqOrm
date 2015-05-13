@@ -31,6 +31,7 @@ class IQORMSHARED_EXPORT IqOrmFilter : public IqOrmAbstractFilter
     Q_PROPERTY(QString property READ property WRITE setProperty NOTIFY propertyChanged)
     Q_PROPERTY(QVariant value READ value WRITE setValue NOTIFY valueChanged)
     Q_PROPERTY(Qt::CaseSensitivity caseSensitivity READ caseSensitivity WRITE setCaseSensitivity NOTIFY caseSensitivityChanged)
+    Q_PROPERTY(bool inverted READ inverted WRITE setInverted NOTIFY invertedChanged)
 
     Q_ENUMS(Condition)
 public:
@@ -67,17 +68,22 @@ public:
     Qt::CaseSensitivity caseSensitivity() const;
     void setCaseSensitivity(const Qt::CaseSensitivity caseSensitivity);
 
+    bool inverted() const;
+    void setInverted(bool inverted);
+
 signals:
     void conditionChanged();
     void propertyChanged();
     void valueChanged();
     void caseSensitivityChanged();
+    void invertedChanged();
 
 private:
     Condition m_condition;
     QString m_property;
     QVariant m_value;
     Qt::CaseSensitivity m_caseSensitivity;
+    bool m_inverted;
 };
 
 #endif // IQORMFILTER_H

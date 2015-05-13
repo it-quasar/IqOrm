@@ -24,7 +24,8 @@ IqOrmFilter::IqOrmFilter(QObject *parent) :
     m_condition(None),
     m_property(""),
     m_value(QVariant()),
-    m_caseSensitivity(Qt::CaseSensitive)
+    m_caseSensitivity(Qt::CaseSensitive),
+    m_inverted(false)
 {
 }
 
@@ -38,7 +39,8 @@ IqOrmFilter::IqOrmFilter(const QString &property, Condition operation, const QVa
     m_condition(operation),
     m_property(property),
     m_value(value),
-    m_caseSensitivity(Qt::CaseSensitive)
+    m_caseSensitivity(Qt::CaseSensitive),
+    m_inverted(false)
 {
 }
 
@@ -49,11 +51,10 @@ IqOrmFilter::Condition IqOrmFilter::condition() const
 
 void IqOrmFilter::setCondition(const Condition operation)
 {
-    if (m_condition == operation)
-        return;
-    m_condition = operation;
-
-    emit conditionChanged();
+    if (m_condition != operation) {
+        m_condition = operation;
+        emit conditionChanged();
+    }
 }
 
 QString IqOrmFilter::property() const
@@ -63,11 +64,10 @@ QString IqOrmFilter::property() const
 
 void IqOrmFilter::setProperty(const QString &property)
 {
-    if (m_property == property)
-        return;
-    m_property = property;
-
-    emit propertyChanged();
+    if (m_property != property) {
+        m_property = property;
+        emit propertyChanged();
+    }
 }
 
 QVariant IqOrmFilter::value() const
@@ -77,11 +77,10 @@ QVariant IqOrmFilter::value() const
 
 void IqOrmFilter::setValue(const QVariant &value)
 {
-    if (m_value == value)
-        return;
-    m_value = value;
-
-    emit valueChanged();
+    if (m_value != value) {
+        m_value = value;
+        emit valueChanged();
+    }
 }
 
 Qt::CaseSensitivity IqOrmFilter::caseSensitivity() const
@@ -91,9 +90,21 @@ Qt::CaseSensitivity IqOrmFilter::caseSensitivity() const
 
 void IqOrmFilter::setCaseSensitivity(const Qt::CaseSensitivity caseSensitivity)
 {
-    if (m_caseSensitivity == caseSensitivity)
-        return;
-    m_caseSensitivity = caseSensitivity;
-
-    emit caseSensitivityChanged();
+    if (m_caseSensitivity != caseSensitivity) {
+        m_caseSensitivity = caseSensitivity;
+        emit caseSensitivityChanged();
+    }
 }
+bool IqOrmFilter::inverted() const
+{
+    return m_inverted;
+}
+
+void IqOrmFilter::setInverted(bool inverted)
+{
+    if (m_inverted != inverted) {
+        m_inverted = inverted;
+        emit invertedChanged();
+    }
+}
+
