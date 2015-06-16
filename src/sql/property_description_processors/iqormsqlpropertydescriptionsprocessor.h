@@ -90,6 +90,11 @@ public:
     bool postRemove(const IqOrmObject *object,
                     IqOrmDataSourceOperationResult *result) const;
 
+    static QVariant convertSqlValueForProperty(const IqOrmPropertyDescription *propertyDescription,
+                                               const QVariant &sqlValue,
+                                               bool *ok = Q_NULLPTR,
+                                               QString *error = Q_NULLPTR);
+
 
 public:
     void setSqlDataSource(IqOrmSqlDataSource *sqlDataSource);
@@ -98,6 +103,8 @@ private:
     QSharedPointer<IqOrmSqlAbstractPropertyDescriptionProcessor> processor(const IqOrmPropertyDescription *propertyDescription,
                                                                            const IqOrmObject *object,
                                                                            const IqOrmMetaModel *ormModel = Q_NULLPTR) const;
+
+    static QSharedPointer<IqOrmSqlAbstractPropertyDescriptionProcessor> processorForProperty(const IqOrmPropertyDescription *propertyDescription);
 
     IqOrmSqlDataSource *m_sqlDataSource;
 };

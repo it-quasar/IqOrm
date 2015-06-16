@@ -83,56 +83,15 @@ IqOrmObjectRawData IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(
         Q_ASSERT(value.isValid());
 
         //Устанавливаем значение
-        switch (propDescription->storedValue()) {
-        case IqOrmPropertyDescription::Direct: {
-            rawData.values[propDescription] = value;
-            break;
-        }
-        case IqOrmPropertyDescription::ObjectPointer: {
-            if (value.canConvert<qint32>()) {
-                rawData.values[propDescription] = value;
-            } else {
-                if (error)
-                    *error = tr("Error convert value %0 to qint64 for property %1.")
-                        .arg(value.toString())
-                        .arg(propDescription->propertyName());
-                if (ok)
-                    *ok = false;
-                return rawData;
-            }
-            break;
-        }
-        case IqOrmPropertyDescription::ObjectPointerList: {
-            if (value.canConvert<QString>()) {
-                QString objectIdsString = value.toString();
-                QStringList objectIdsStringList = objectIdsString.split(',', QString::SkipEmptyParts);
-
-                QVariantList objectIdsVariantList;
-                foreach (const QString &string, objectIdsStringList) {
-                    qint64 objectId = string.toLongLong(ok);
-                    if (!ok) {
-                        if (error)
-                            *error = tr("Error convert value %0 to QList<qint64> for property %1.")
-                                .arg(value.toString())
-                                .arg(propDescription->propertyName());
-                        if (ok)
-                            *ok = false;
-                        return rawData;
-                    }
-                    objectIdsVariantList << objectId;
-                }
-                rawData.values[propDescription] = objectIdsVariantList;
-            } else {
-                if (error)
-                    *error = tr("Error convert value %0 to QList<qint64> for property %1.")
-                        .arg(value.toString())
-                        .arg(propDescription->propertyName());
-                if (ok)
-                    *ok = false;
-                return rawData;
-            }
-            break;
-        }
+        bool convertOk;
+        QString convertError;
+        rawData.values[propDescription] = IqOrmSqlPropertyDescriptionsProcessor::convertSqlValueForProperty(propDescription, value, &convertOk, &convertError);
+        if (!convertOk) {
+            if (error)
+                *error = convertError;
+            if (ok)
+                *ok = false;
+            return rawData;
         }
     }
 

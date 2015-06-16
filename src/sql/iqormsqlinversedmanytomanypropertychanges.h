@@ -34,9 +34,8 @@ public:
     QHash<qint64, qint64> removedObjectIds() const;
     void addRemovedObjectId(qint64 objectId, qint64 joinTableRowId);
 
-private:
-    void addNewObjectId(qint64 objectId);
-    void addRemovedObjectId(qint64 objectId);
+    void addNewObjectId(qint64 objectId) = delete;
+    void addRemovedObjectId(qint64 objectId) = delete;
 
 private:
     QHash<qint64, qint64> m_newObjectIds;

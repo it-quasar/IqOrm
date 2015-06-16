@@ -17,46 +17,28 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#include "iqormsqlmanytomanypropertychanges.h"
+#ifndef IQORMSQLONEOBJECTDESCRTIBINGPROPERTYDESCRIPTIONPROCESSOR_H
+#define IQORMSQLONEOBJECTDESCRTIBINGPROPERTYDESCRIPTIONPROCESSOR_H
 
-IqOrmSqlManyToManyPropertyChanges::IqOrmSqlManyToManyPropertyChanges()
+#include "iqormsqlmappedpropertydescriptionprocessor.h"
+#include "iqormoneobjectdescribingpropertydescription.h"
+#include "iqorm_global.h"
+
+class IQORMSHARED_EXPORT IqOrmSqlOneObjectDescrtibingPropertyDescriptionProcessor : public IqOrmSqlMappedPropertyDescriptionProcessor
 {
-}
+public:
+    explicit IqOrmSqlOneObjectDescrtibingPropertyDescriptionProcessor();
 
-QHash<qint64, qint64> IqOrmSqlManyToManyPropertyChanges::newObjectIds() const
-{
-    return m_newObjectIds;
-}
+public:
+    const IqOrmOneObjectDescribingPropertyDescription *propertyDescription() const;
 
-void IqOrmSqlManyToManyPropertyChanges::addNewObjectId(qint64 objectId, qint64 joinTableRowId)
-{
-    if (m_removedObjectIds.contains(objectId))
-        m_removedObjectIds.remove(objectId);
-    else
-        m_newObjectIds[objectId] = joinTableRowId;
-}
+    virtual QVariant propertyValue() const Q_DECL_OVERRIDE Q_DECL_FINAL;
+    virtual bool selectAllowed(IqOrmDataSourceOperationResult *result) const Q_DECL_OVERRIDE Q_DECL_FINAL;
+    virtual bool preSelect(IqOrmDataSourceOperationResult *result) const Q_DECL_OVERRIDE Q_DECL_FINAL;
+    virtual bool postSelect(IqOrmDataSourceOperationResult *result) const Q_DECL_OVERRIDE Q_DECL_FINAL;
+    virtual QVariant convertSqlValue(const QVariant &sqlValue,
+                                     bool *ok = Q_NULLPTR,
+                                     QString *error = Q_NULLPTR) const Q_DECL_OVERRIDE Q_DECL_FINAL;
+};
 
-QHash<qint64, qint64> IqOrmSqlManyToManyPropertyChanges::removedObjectIds() const
-{
-    return m_removedObjectIds;
-}
-
-void IqOrmSqlManyToManyPropertyChanges::addRemovedObjectId(qint64 objectId, qint64 joinTableRowId)
-{
-    if (m_newObjectIds.contains(objectId))
-        m_newObjectIds.remove(objectId);
-    else
-        m_removedObjectIds[objectId] = joinTableRowId;
-}
-
-void IqOrmSqlManyToManyPropertyChanges::addNewObjectId(qint64 objectId)
-{
-    Q_UNUSED(objectId);
-}
-
-void IqOrmSqlManyToManyPropertyChanges::addRemovedObjectId(qint64 objectId)
-{
-    Q_UNUSED(objectId);
-}
-
-
+#endif // IQORMSQLONEOBJECTDESCRTIBINGPROPERTYDESCRIPTIONPROCESSOR_H

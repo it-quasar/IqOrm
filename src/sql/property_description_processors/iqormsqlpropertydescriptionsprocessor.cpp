@@ -314,6 +314,12 @@ bool IqOrmSqlPropertyDescriptionsProcessor::postRemove(const IqOrmObject *object
     return true;
 }
 
+QVariant IqOrmSqlPropertyDescriptionsProcessor::convertSqlValueForProperty(const IqOrmPropertyDescription *propertyDescription, const QVariant &sqlValue, bool *ok, QString *error)
+{
+    Q_CHECK_PTR(propertyDescription);
+    return processorForProperty(propertyDescription)->convertSqlValue(sqlValue, ok, error);
+}
+
 void IqOrmSqlPropertyDescriptionsProcessor::setSqlDataSource(IqOrmSqlDataSource *sqlDataSource)
 {
     if (m_sqlDataSource != sqlDataSource) {
@@ -325,7 +331,19 @@ QSharedPointer<IqOrmSqlAbstractPropertyDescriptionProcessor> IqOrmSqlPropertyDes
                                                                                                               const IqOrmObject *object,
                                                                                                               const IqOrmMetaModel *ormModel) const
 {
+    QSharedPointer<IqOrmSqlAbstractPropertyDescriptionProcessor> result = processorForProperty(propertyDescription);
+
+    result->setSqlDataSource(m_sqlDataSource);
+    result->setOrmModel(ormModel);
+    result->setObject(object);
+
+    return result;
+}
+
+QSharedPointer<IqOrmSqlAbstractPropertyDescriptionProcessor> IqOrmSqlPropertyDescriptionsProcessor::processorForProperty(const IqOrmPropertyDescription *propertyDescription)
+{
     Q_CHECK_PTR(propertyDescription);
+
     QSharedPointer<IqOrmSqlAbstractPropertyDescriptionProcessor> result;
     switch (propertyDescription->mappedType()) {
     case IqOrmPropertyDescription::Direct:
@@ -351,10 +369,7 @@ QSharedPointer<IqOrmSqlAbstractPropertyDescriptionProcessor> IqOrmSqlPropertyDes
         break;
     }
 
-    result->setSqlDataSource(m_sqlDataSource);
     result->setPropertyDescription(propertyDescription);
-    result->setOrmModel(ormModel);
-    result->setObject(object);
 
     return result;
 }

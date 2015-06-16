@@ -95,7 +95,18 @@ public:
 
     QString escapedPropertyName(const QString &propertyName) const;
 
-    QVariant excapedValue(const QVariant &value) const;
+    static QVariant prepareValueToSql(const QVariant &value);
+
+    static QVariant createValueFromSql(const QVariant &sqlValue,
+                                       QVariant::Type valueType,
+                                       bool *ok = Q_NULLPTR);
+
+    static QString escapeString(const QString &string);
+
+    static QStringList splitStringArray(const QString &arrayString,
+                                        bool *ok = Q_NULLPTR);
+
+    static QString joinStringArray(const QStringList &list);
 
 protected:
     virtual bool openTransaction() Q_DECL_OVERRIDE;

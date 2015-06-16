@@ -75,6 +75,10 @@ public:
 
     virtual bool postRemove(IqOrmDataSourceOperationResult *result) const = 0;
 
+    virtual QVariant convertSqlValue(const QVariant &sqlValue,
+                                     bool *ok = Q_NULLPTR,
+                                     QString *error = Q_NULLPTR) const = 0;
+
 public:
     IqOrmSqlDataSource *sqlDataSource() const;
     void setSqlDataSource(IqOrmSqlDataSource *sqlDataSource);
@@ -132,6 +136,7 @@ protected:
     bool execPreparedQuery(QSqlQuery &query,
                            const QList<QVariant> bindValues = QList<QVariant>(),
                            QString *errorText = Q_NULLPTR) const;
+
 
 private:
     IqOrmSqlDataSource *m_sqlDataSource;

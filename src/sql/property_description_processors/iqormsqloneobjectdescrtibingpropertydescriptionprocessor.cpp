@@ -56,3 +56,29 @@ bool IqOrmSqlOneObjectDescrtibingPropertyDescriptionProcessor::postSelect(IqOrmD
     result->setError("");
     return true;
 }
+
+QVariant IqOrmSqlOneObjectDescrtibingPropertyDescriptionProcessor::convertSqlValue(const QVariant &sqlValue, bool *ok, QString *error) const
+{
+    Q_CHECK_PTR(propertyDescription());
+
+    QVariant result;
+
+    if (sqlValue.canConvert<qint32>()) {
+        result = sqlValue;
+    } else {
+        if (error)
+            *error = QObject::tr("Error convert value %0 to qint64 for property %1.")
+                .arg(sqlValue.toString())
+                .arg(IqOrmSqlAbstractPropertyDescriptionProcessor::propertyDescription()->propertyName());
+        if (ok)
+            *ok = false;
+        return result;
+    }
+
+    if (error)
+        error->clear();
+    if (ok)
+        *ok = true;
+
+    return result;
+}

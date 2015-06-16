@@ -29,6 +29,7 @@ class IqOrmAbstractFilter;
 class IqOrmSqlDataSource;
 class IqOrmDirectPropertyDescription;
 class IqOrmBaseManyToOnePropertyDescription;
+class IqOrmObjectRawData;
 
 class IQORMSHARED_EXPORT IqOrmSqlModelDataSource : public IqOrmAbstractModelDataSource
 {
@@ -74,9 +75,16 @@ private:
 
     QString columnCondition(const QString &columnName,
                             const QString &propertyName,
+                            const QString &propertyTypeName,
                             IqOrmFilter::Condition condition,
                             bool *ok,
                             QString *errorString) const;
+
+    bool postLoadFiltering(const IqOrmBaseModel *model,
+                           const IqOrmObjectRawData &rawData) const;
+
+    bool dataMatchToFilter(const IqOrmMetaModel *model, const IqOrmAbstractFilter *filter,
+                                const IqOrmObjectRawData &rawData) const;
 };
 
 #endif // IQORMSQLMODELDATASOURCE_H

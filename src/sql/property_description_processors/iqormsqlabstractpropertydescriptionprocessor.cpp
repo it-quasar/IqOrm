@@ -189,7 +189,7 @@ QString IqOrmSqlAbstractPropertyDescriptionProcessor::escapedPropertyName(const 
 
 QVariant IqOrmSqlAbstractPropertyDescriptionProcessor::excapedValue(const QVariant &value) const
 {
-    return sqlDataSource()->excapedValue(value);
+    return sqlDataSource()->prepareValueToSql(value);
 }
 
 QString IqOrmSqlAbstractPropertyDescriptionProcessor::escapedObjectTableName() const
@@ -305,4 +305,3 @@ void IqOrmSqlAbstractPropertyDescriptionProcessor::setOrmModel(const IqOrmMetaMo
 {
     m_ormModel = model;
 }
-

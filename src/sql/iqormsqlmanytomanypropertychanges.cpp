@@ -17,30 +17,39 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#ifndef IQORMSQLMANYTOMANYPROPERTYCHANGES_H
-#define IQORMSQLMANYTOMANYPROPERTYCHANGES_H
+#include "iqormsqlmanytomanypropertychanges.h"
 
-#include "iqormmanytomanypropertychanges.h"
-#include "iqorm_global.h"
-
-class IQORMSHARED_EXPORT IqOrmSqlManyToManyPropertyChanges : public IqOrmManyToManyPropertyChanges
+IqOrmSqlManyToManyPropertyChanges::IqOrmSqlManyToManyPropertyChanges() :
+    IqOrmManyToManyPropertyChanges()
 {
-public:
-    IqOrmSqlManyToManyPropertyChanges();
+}
 
-    QHash<qint64, qint64> newObjectIds() const;
-    void addNewObjectId(qint64 objectId, qint64 joinTableRowId);
+QHash<qint64, qint64> IqOrmSqlManyToManyPropertyChanges::newObjectIds() const
+{
+    return m_newObjectIds;
+}
 
-    QHash<qint64, qint64> removedObjectIds() const;
-    void addRemovedObjectId(qint64 objectId, qint64 joinTableRowId);
+void IqOrmSqlManyToManyPropertyChanges::addNewObjectId(qint64 objectId, qint64 joinTableRowId)
+{
+    if (m_removedObjectIds.contains(objectId))
+        m_removedObjectIds.remove(objectId);
+    else
+        m_newObjectIds[objectId] = joinTableRowId;
 
-private:
-    void addNewObjectId(qint64 objectId);
-    void addRemovedObjectId(qint64 objectId);
+    IqOrmManyToManyPropertyChanges::addNewObjectId(objectId);
+}
 
-private:
-    QHash<qint64, qint64> m_newObjectIds;
-    QHash<qint64, qint64> m_removedObjectIds;
-};
+QHash<qint64, qint64> IqOrmSqlManyToManyPropertyChanges::removedObjectIds() const
+{
+    return m_removedObjectIds;
+}
 
-#endif // IQORMSQLMANYTOMANYPROPERTYCHANGES_H
+void IqOrmSqlManyToManyPropertyChanges::addRemovedObjectId(qint64 objectId, qint64 joinTableRowId)
+{
+    if (m_newObjectIds.contains(objectId))
+        m_newObjectIds.remove(objectId);
+    else
+        m_removedObjectIds[objectId] = joinTableRowId;
+
+    IqOrmManyToManyPropertyChanges::addRemovedObjectId(objectId);
+}

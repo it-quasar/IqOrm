@@ -64,8 +64,6 @@ QString IqOrmSqlDirectPropertyDescriptionProcessor::updateFieldName() const
 
 QVariant IqOrmSqlDirectPropertyDescriptionProcessor::insertValue() const
 {
-
-
     return excapedValue(propertyValue());
 }
 
@@ -176,4 +174,31 @@ bool IqOrmSqlDirectPropertyDescriptionProcessor::postRemove(IqOrmDataSourceOpera
     Q_CHECK_PTR(result);
     result->setError("");
     return true;
+}
+
+QVariant IqOrmSqlDirectPropertyDescriptionProcessor::convertSqlValue(const QVariant &sqlValue, bool *ok, QString *error) const
+{
+    Q_CHECK_PTR(propertyDescription());
+
+    bool createValueOk;
+    QVariant result = IqOrmSqlDataSource::createValueFromSql(sqlValue,
+                                                  propertyDescription()->targetStaticMetaPropery().type(),
+                                                  &createValueOk);
+    if (!createValueOk) {
+        if (error)
+            *error = QObject::tr("Error convert value %0 to %1 for property %2.")
+                .arg(sqlValue.toString())
+                .arg(propertyDescription()->targetStaticMetaPropery().typeName())
+                .arg(propertyDescription()->propertyName());
+
+        if (ok)
+            *ok = false;
+    }
+
+    if (error)
+        error->clear();
+    if (ok)
+        *ok = true;
+
+    return result;
 }

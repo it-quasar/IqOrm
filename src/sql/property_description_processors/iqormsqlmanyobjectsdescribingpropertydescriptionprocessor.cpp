@@ -243,3 +243,44 @@ bool IqOrmSqlManyObjectsDescribingPropertyDescriptionProcessor::postRemove(IqOrm
 
     return removeOwner(ownerObjectIdsToRemove, result);
 }
+
+QVariant IqOrmSqlManyObjectsDescribingPropertyDescriptionProcessor::convertSqlValue(const QVariant &sqlValue, bool *ok, QString *error) const
+{
+    QVariant result;
+
+    if (sqlValue.canConvert<QString>()) {
+        QString objectIdsString = sqlValue.toString();
+        QStringList objectIdsStringList = objectIdsString.split(',', QString::SkipEmptyParts);
+
+        QVariantList objectIdsVariantList;
+        foreach (const QString &string, objectIdsStringList) {
+            qint64 objectId = string.toLongLong(ok);
+            if (!ok) {
+                if (error)
+                    *error = QObject::tr("Error convert value %0 to QList<qint64> for property %1.")
+                        .arg(sqlValue.toString())
+                        .arg(IqOrmSqlAbstractPropertyDescriptionProcessor::propertyDescription()->propertyName());
+                if (ok)
+                    *ok = false;
+                return result;
+            }
+            objectIdsVariantList << objectId;
+        }
+        result = objectIdsVariantList;
+    } else {
+        if (error)
+            *error = QObject::tr("Error convert value %0 to QList<qint64> for property %1.")
+                .arg(sqlValue.toString())
+                .arg(IqOrmSqlAbstractPropertyDescriptionProcessor::propertyDescription()->propertyName());
+        if (ok)
+            *ok = false;
+        return result;
+    }
+
+    if (error)
+        error->clear();
+    if (ok)
+        *ok = true;
+
+    return result;
+}

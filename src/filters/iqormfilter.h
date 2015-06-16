@@ -46,7 +46,8 @@ public:
         LessOrEquals,
         StartsWith,
         EndsWith,
-        Contains
+        Contains,
+        Overlap
     };
 
     explicit IqOrmFilter(QObject *parent = Q_NULLPTR);

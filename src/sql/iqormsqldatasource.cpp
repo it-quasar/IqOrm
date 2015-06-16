@@ -41,17 +41,131 @@ IqOrmSqlDataSource::IqOrmSqlDataSource(QObject *parent) :
 {
 }
 
-QVariant IqOrmSqlDataSource::excapedValue(const QVariant &value) const
+QVariant IqOrmSqlDataSource::prepareValueToSql(const QVariant &value)
 {
     switch (static_cast<QMetaType::Type>(value.type())) {
     case QMetaType::UChar:
     case QMetaType::Char:
         return value.toInt();
+        break;
+    case QMetaType::QStringList:
+        return joinStringArray(value.toStringList());
+        break;
     default:
         break;
     }
 
     return value;
+}
+
+QVariant IqOrmSqlDataSource::createValueFromSql(const QVariant &sqlValue,
+                                                QVariant::Type valueType,
+                                                bool *ok)
+{
+    QVariant result;
+
+    switch (valueType) {
+    case QVariant::StringList: {
+        //Если это список строк
+        bool splitOk;
+        result = IqOrmSqlDataSource::splitStringArray(sqlValue.toString(), &splitOk);
+
+        if (!splitOk) {
+            if (ok)
+                *ok = false;
+            return result;
+        }
+
+        break;
+    }
+    default:
+        result = sqlValue;
+        break;
+    }
+
+    if (ok)
+        *ok = true;
+
+    return result;
+}
+
+QString IqOrmSqlDataSource::escapeString(const QString &string)
+{
+    if (string.contains(',')
+            || string.contains('\\')
+            || string.contains('\'')) {
+        QString quotedString = string;
+        quotedString.replace('\\', "\\\\");
+        quotedString.replace('\'', "\\'");
+        quotedString.prepend('\'');
+        quotedString.append('\'');
+        return quotedString;
+    }
+
+    return string;
+}
+
+QStringList IqOrmSqlDataSource::splitStringArray(const QString &arrayString, bool *ok)
+{
+    if (arrayString.isEmpty()) {
+        if (ok)
+            *ok = true;
+        return QStringList();
+    }
+
+    if (!arrayString.startsWith("{")
+            || !arrayString.endsWith("}")) {
+        if (ok)
+            *ok = false;
+        return QStringList();
+    }
+
+    QStringList result;
+
+    QString string;
+    bool quoteStart = false;
+    for (int i = 1; i < arrayString.length() - 1; ++i) {
+        QChar c = arrayString.at(i);
+
+        if (c == ',') {
+            if (quoteStart)
+                string.append(c);
+            else {
+                result.append(string);
+                string.clear();
+            }
+        } else if (c == '\\') {
+            ++i;
+            QChar nextC = arrayString.at(i);
+            string.append(nextC);
+        } else if (c == '\'')
+            quoteStart = !quoteStart;
+        else
+            string.append(c);
+    }
+
+    result.append(string);
+
+    if (ok)
+        *ok = true;
+
+    return result;
+}
+
+QString IqOrmSqlDataSource::joinStringArray(const QStringList &list)
+{
+    if (list.isEmpty())
+        return "";
+
+    QStringList escapedStringList;
+    foreach (const QString &string, list) {
+        escapedStringList.append(escapeString(string));
+    }
+
+    QString result = escapedStringList.join(',');
+    result.prepend('{');
+    result.append('}');
+    return result;
 }
 
 IqOrmSqlObjectDataSource * IqOrmSqlDataSource::objectDataSource() const
@@ -481,3 +595,4 @@ QSqlQuery IqOrmSqlDataSource::execQuery(const QString &prepareString, const QLis
 {
     return execQuery(prepareString, bindValues, false, ok, errorText);
 }
+

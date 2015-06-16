@@ -51,6 +51,9 @@ public:
     virtual bool postInsert(IqOrmDataSourceOperationResult *result) const Q_DECL_OVERRIDE;
     virtual bool postUpdate(IqOrmDataSourceOperationResult *result) const Q_DECL_OVERRIDE;
     virtual bool postRemove(IqOrmDataSourceOperationResult *result) const Q_DECL_OVERRIDE;
+    virtual QVariant convertSqlValue(const QVariant &sqlValue,
+                                     bool *ok = Q_NULLPTR,
+                                     QString *error = Q_NULLPTR) const Q_DECL_OVERRIDE;
 };
 
 #endif // IQORMSQLDIRECTPROPERTYDESCRIPTIONPROCESSOR_H

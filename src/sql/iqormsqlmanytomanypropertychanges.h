@@ -17,44 +17,29 @@
  * along with IqOrm.  If not, see <http://www.gnu.org/licenses/>.                 *
  **********************************************************************************/
 
-#include "iqormsqlinversedmanytomanypropertychanges.h"
+#ifndef IQORMSQLMANYTOMANYPROPERTYCHANGES_H
+#define IQORMSQLMANYTOMANYPROPERTYCHANGES_H
 
-IqOrmSqlInversedManyToManyPropertyChanges::IqOrmSqlInversedManyToManyPropertyChanges()
-{
-}
+#include "iqormmanytomanypropertychanges.h"
+#include "iqorm_global.h"
 
-QHash<qint64, qint64> IqOrmSqlInversedManyToManyPropertyChanges::newObjectIds() const
+class IQORMSHARED_EXPORT IqOrmSqlManyToManyPropertyChanges : public IqOrmManyToManyPropertyChanges
 {
-    return m_newObjectIds;
-}
+public:
+    IqOrmSqlManyToManyPropertyChanges();
 
-void IqOrmSqlInversedManyToManyPropertyChanges::addNewObjectId(qint64 objectId, qint64 joinTableRowId)
-{
-    if (m_removedObjectIds.contains(objectId))
-        m_removedObjectIds.remove(objectId);
-    else
-        m_newObjectIds[objectId] = joinTableRowId;
-}
+    QHash<qint64, qint64> newObjectIds() const;
+    void addNewObjectId(qint64 objectId, qint64 joinTableRowId);
 
-QHash<qint64, qint64> IqOrmSqlInversedManyToManyPropertyChanges::removedObjectIds() const
-{
-    return m_removedObjectIds;
-}
+    QHash<qint64, qint64> removedObjectIds() const;
+    void addRemovedObjectId(qint64 objectId, qint64 joinTableRowId);
 
-void IqOrmSqlInversedManyToManyPropertyChanges::addRemovedObjectId(qint64 objectId, qint64 joinTableRowId)
-{
-    if (m_newObjectIds.contains(objectId))
-        m_newObjectIds.remove(objectId);
-    else
-        m_removedObjectIds[objectId] = joinTableRowId;
-}
+    void addNewObjectId(qint64 objectId) = delete;
+    void addRemovedObjectId(qint64 objectId) = delete;
 
-void IqOrmSqlInversedManyToManyPropertyChanges::addNewObjectId(qint64 objectId)
-{
-    Q_UNUSED(objectId);
-}
+private:
+    QHash<qint64, qint64> m_newObjectIds;
+    QHash<qint64, qint64> m_removedObjectIds;
+};
 
-void IqOrmSqlInversedManyToManyPropertyChanges::addRemovedObjectId(qint64 objectId)
-{
-    Q_UNUSED(objectId);
-}
+#endif // IQORMSQLMANYTOMANYPROPERTYCHANGES_H

@@ -46,6 +46,9 @@ public:
     virtual bool postInsert(IqOrmDataSourceOperationResult *result) const Q_DECL_OVERRIDE Q_DECL_FINAL;
     virtual bool postUpdate(IqOrmDataSourceOperationResult *result) const Q_DECL_OVERRIDE Q_DECL_FINAL;
     virtual bool postRemove(IqOrmDataSourceOperationResult *result) const Q_DECL_OVERRIDE Q_DECL_FINAL;
+    virtual QVariant convertSqlValue(const QVariant &sqlValue,
+                                     bool *ok = Q_NULLPTR,
+                                     QString *error = Q_NULLPTR) const Q_DECL_OVERRIDE Q_DECL_FINAL;
 
 protected:
     virtual QSet<qint64> ownerObjectIds(IqOrmDataSourceOperationResult *result,

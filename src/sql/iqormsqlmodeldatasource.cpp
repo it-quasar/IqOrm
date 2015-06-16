@@ -203,9 +203,11 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
     //Пройдемся по всем записям
     while (query.next()) {
         IqOrmObjectRawData rawData = IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(ormModel, query, &ok);
-
         Q_ASSERT(ok);
-        modelValues << rawData;
+
+        //Проверим, чтоб данные удовлетворяли фильтрам
+        if (postLoadFiltering(model, rawData))
+            modelValues << rawData;
     }
 
 #if defined(IQORM_DEBUG_MODE)
@@ -377,25 +379,50 @@ QString IqOrmSqlModelDataSource::filterStringForDirectProperty(const IqOrmMetaMo
 
     QString filterString = "";
 
-    QVariant::Type propertyType;
+    QVariant::Type propertyType = QVariant::Invalid;
     if (propertyDesctiption) {
         propertyType = propertyDesctiption->targetStaticMetaPropery().type();
     } else if (filter->property() == QStringLiteral("objectId")) {
         propertyType = QVariant::LongLong;
     }
 
+    Q_ASSERT(propertyType != QVariant::Invalid);
+
+    auto notSupprotCondition = [filter, ok, errorString, propertyDesctiption](){
+        int enumIndex = IqOrmFilter::staticMetaObject.indexOfEnumerator("Condition");
+        Q_ASSERT(enumIndex != -1);
+        QMetaEnum metaEnum = IqOrmFilter::staticMetaObject.enumerator(enumIndex);
+        const char *conditionName = metaEnum.key(filter->condition());
+        *ok = false;
+        *errorString = tr("IqOrmFilter for property \"%0\" with type \"%1\" not support \"%2\" condition.")
+                .arg(propertyDesctiption->propertyName())
+                .arg(propertyDesctiption->targetStaticMetaPropery().typeName())
+                .arg(conditionName);
+        return "";
+    };
+
+    if (propertyType != QVariant::String
+            && filter->caseSensitivity() == Qt::CaseInsensitive) {
+        *ok = false;
+        *errorString = tr("CaseInsensitive IqOrmFilter works only \"QString\" property, but property \"%0\" is \"%1\". CaseInsensitive ignored.")
+                 .arg(propertyDesctiption->propertyName())
+                 .arg(propertyDesctiption->targetStaticMetaPropery().typeName());
+        return "";
+    }
+
     //В зависимости от типа свойства модели
     switch (propertyType) {
-    case QVariant::Invalid:
+    case QVariant::Invalid: {
         *ok = true;
         return "";
         break;
+    }
 
         //Строка
     case QVariant::String: {
         QString caseSesitivityColumnName = "";
         QString caseSesitivityBindParam = "";
-        if (filter->caseSensitivity()) {
+        if (filter->caseSensitivity() == Qt::CaseSensitive) {
             caseSesitivityColumnName = columnName;
             caseSesitivityBindParam = "?";
         } else {
@@ -434,17 +461,55 @@ QString IqOrmSqlModelDataSource::filterStringForDirectProperty(const IqOrmMetaMo
                     .arg(caseSesitivityColumnName)
                     .arg(caseSesitivityBindParam);
             break;
-        default:
-            int enumIndex = IqOrmFilter::staticMetaObject.indexOfEnumerator("Condition");
-            Q_ASSERT(enumIndex != -1);
-            QMetaEnum metaEnum = IqOrmFilter::staticMetaObject.enumerator(enumIndex);
-            const char *conditionName = metaEnum.key(filter->condition());
-            *ok = false;
-            *errorString = tr("IqOrmFilter for QString property \"%0\" not support \"%1\" condition.")
-                    .arg(propertyDesctiption->propertyName())
-                    .arg(conditionName);
-            return "";
+        default: {
+            return notSupprotCondition();
             break;
+        }
+        }
+        break;
+    }
+
+        //Список строк
+    case QVariant::StringList: {
+        QStringList filterValueList = filter->value().toStringList();
+        QString filterSqlArray = IqOrmSqlDataSource::joinStringArray(filterValueList);
+
+        switch (filter->condition()) {
+        case IqOrmFilter::Equals: {
+            filterString = QString("%0 = ?")
+                    .arg(columnName);
+            bindValues->append(filterSqlArray);
+            break;
+        }
+        case IqOrmFilter::Overlap: {
+            if (m_sqlDataSource->databaseType() == IqOrmSqlDataSource::PostgreSQL) {
+                filterString = QString("%0 && ?")
+                        .arg(columnName);
+                bindValues->append(filterSqlArray);
+            } else {
+                if (filterValueList.isEmpty()) {
+                    filterString = QString("%0 = ?")
+                            .arg(columnName);
+                    bindValues->append("");
+                } else {
+                    QStringList filtersList;
+                    foreach (const QString &string, filterValueList) {
+                        QString escapedString = IqOrmSqlDataSource::escapeString(string);
+                        filtersList << QString("%0 LIKE %?%")
+                                       .arg(columnName);
+                        bindValues->append(escapedString);
+                    }
+                    filterString = "( ";
+                    filterString.append(filtersList.join(" OR "));
+                    filterString.append(" )");
+                }
+            }
+            break;
+        }
+        default: {
+            return notSupprotCondition();
+            break;
+        }
         }
         break;
     }
@@ -454,7 +519,12 @@ QString IqOrmSqlModelDataSource::filterStringForDirectProperty(const IqOrmMetaMo
         bindValues->append(filter->value());
         bool conditionOk;
         QString conditionError;
-        filterString = columnCondition(columnName, propertyDesctiption->propertyName(), filter->condition(), &conditionOk, &conditionError);
+        filterString = columnCondition(columnName,
+                                       propertyDesctiption->propertyName(),
+                                       propertyDesctiption->targetStaticMetaPropery().typeName(),
+                                       filter->condition(),
+                                       &conditionOk,
+                                       &conditionError);
         if (!conditionOk) {
             *ok = false;
             *errorString = conditionError;
@@ -545,6 +615,7 @@ QString IqOrmSqlModelDataSource::filterStringForManyToOneProperty(const IqOrmMet
 
 QString IqOrmSqlModelDataSource::columnCondition(const QString &columnName,
                                                  const QString &propertyName,
+                                                 const QString &propertyTypeName,
                                                  IqOrmFilter::Condition condition,
                                                  bool *ok,
                                                  QString *errorString) const
@@ -581,8 +652,9 @@ QString IqOrmSqlModelDataSource::columnCondition(const QString &columnName,
         QMetaEnum metaEnum = IqOrmFilter::staticMetaObject.enumerator(enumIndex);
         const char *conditionName = metaEnum.key(condition);
         *ok = false;
-        *errorString = tr("IqOrmFilter for not QString property \"%0\" not support \"%1\" condition.")
+        *errorString = tr("IqOrmFilter for property \"%0\" whit type \"%1\" not support \"%2\" condition.")
                 .arg(propertyName)
+                .arg(propertyTypeName)
                 .arg(conditionName);
         return "";
         break;
@@ -590,4 +662,83 @@ QString IqOrmSqlModelDataSource::columnCondition(const QString &columnName,
 
     *ok = true;
     return conditionString;
+}
+
+bool IqOrmSqlModelDataSource::postLoadFiltering(const IqOrmBaseModel *model, const IqOrmObjectRawData &rawData) const
+{
+    return dataMatchToFilter(model->childsOrmMetaModel(), model->filters(), rawData);
+}
+
+bool IqOrmSqlModelDataSource::dataMatchToFilter(const IqOrmMetaModel *ormMetaModel, const IqOrmAbstractFilter *filter, const IqOrmObjectRawData &rawData) const
+{
+    const IqOrmFilter *directFilter = qobject_cast<const IqOrmFilter *>(filter);
+    if (directFilter) {
+        const IqOrmPropertyDescription *propDescription = ormMetaModel->propertyDescription(directFilter->property());
+        QVariant::Type propertyType;
+        if (propDescription) {
+            propertyType = propDescription->targetStaticMetaPropery().type();
+        } else if (directFilter->property() == QStringLiteral("objectId")) {
+            propertyType = QVariant::LongLong;
+        }
+
+        Q_ASSERT(propertyType != QVariant::Invalid);
+
+        //Обработаем лишь некоторые типы
+        switch (propertyType) {
+        case QVariant::StringList:
+            if (m_sqlDataSource->databaseType() == IqOrmSqlDataSource::PostgreSQL)
+                //PostgeSQL будет всегда выбирать то, что надо
+                return true;
+            else {
+                //Остальные БД могут выбрать не правильно
+                switch (directFilter->condition()) {
+                case IqOrmFilter::Overlap: {
+                    QStringList rawDataValueList = rawData.values[propDescription].toStringList();
+                    QSet<QString> overlapSet = rawDataValueList.toSet();
+                    overlapSet.intersect(directFilter->value().toStringList().toSet());
+                    return !overlapSet.isEmpty();
+                    break;
+                }
+                default:
+                    return true;
+                    break;
+                }
+            }
+            break;
+        default:
+            return true;
+            break;
+        }
+    }
+
+    //Если это групповой фильтр
+    const IqOrmGroupFilter *groupFilter = qobject_cast<const IqOrmGroupFilter*>(filter);
+    if (groupFilter) {
+        switch (groupFilter->type()) {
+        case IqOrmGroupFilter::Or: {
+            foreach (IqOrmAbstractFilter *childFilter, groupFilter->toList()) {
+                if (!childFilter)
+                    continue;
+
+                if (dataMatchToFilter(ormMetaModel, childFilter, rawData))
+                    return true;
+            }
+            return false;
+            break;
+        }
+        case IqOrmGroupFilter::And: {
+            foreach (IqOrmAbstractFilter *childFilter, groupFilter->toList()) {
+                if (!childFilter)
+                    continue;
+
+                if (!dataMatchToFilter(ormMetaModel, childFilter, rawData))
+                    return false;
+            }
+            return true;
+            break;
+        }
+        }
+    }
+
+    return false;
 }
