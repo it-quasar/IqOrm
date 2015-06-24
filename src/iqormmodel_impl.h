@@ -93,6 +93,12 @@ T *IqOrmModel<T>::take(IqOrmObject *object)
 }
 
 template <class T>
+T *IqOrmModel<T>::takeFirst()
+{
+    return dynamic_cast<T *>(IqOrmBaseModel::takeFirst());
+}
+
+template <class T>
 bool IqOrmModel<T>::truncate(QString *error)
 {
     return processTruncate(staticChidsOrmModel(), IqOrmTransactionControl(), IqOrmCore::dataSource(), error);

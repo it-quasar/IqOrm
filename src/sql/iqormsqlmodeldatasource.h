@@ -42,6 +42,9 @@ public:
                                                      qint64 offset = 0,
                                                      OrderBy orderBy = Asc) Q_DECL_OVERRIDE;
 
+    virtual IqOrmDataSourceOperationResult loadCount(const IqOrmBaseModel *model,
+                                                     qint64 *count) Q_DECL_OVERRIDE;
+
     virtual IqOrmDataSourceOperationResult truncateModel(const IqOrmMetaModel *ormModel) Q_DECL_OVERRIDE;
 
 private:

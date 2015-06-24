@@ -138,6 +138,29 @@ QString IqOrmSqlObjectDataSource::generateSelectQuery(const IqOrmMetaModel *ormM
     return queryStr;
 }
 
+QString IqOrmSqlObjectDataSource::generateSelectCountQuery(const IqOrmMetaModel *ormModel) const
+{
+    Q_CHECK_PTR(ormModel);
+
+    Q_ASSERT(!ormModel->tableName().isEmpty());
+
+    QString queryStr = "SELECT COUNT(*) ";
+
+    QString tableName = m_sqlDataSource->escapedTableName(ormModel->tableName());
+
+    queryStr.append("\n    FROM ");
+
+    queryStr.append(tableName);
+
+    QList<IqOrmSqlJoinOperation> joinOperations = m_propertyDescriptionsProcessor->selectJoinOperations(ormModel);
+    //Добавим джойны
+    foreach (const IqOrmSqlJoinOperation &joinOperation, joinOperations) {
+        queryStr.append("\n    " +joinOperation.toString() + " ");
+    }
+
+    return queryStr;
+}
+
 IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::loadObjectById(IqOrmObject *object, qint64 id) const
 {
     IqOrmDataSourceOperationResult result;

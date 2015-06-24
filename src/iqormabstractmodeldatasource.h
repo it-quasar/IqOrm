@@ -47,6 +47,9 @@ public:
                                                      qint64 offset = 0,
                                                      OrderBy orderBy = Asc) = 0;
 
+    virtual IqOrmDataSourceOperationResult loadCount(const IqOrmBaseModel *model,
+                                                     qint64 *count) = 0;
+
     virtual IqOrmDataSourceOperationResult truncateModel(const IqOrmMetaModel *ormModel) = 0;
 };
 

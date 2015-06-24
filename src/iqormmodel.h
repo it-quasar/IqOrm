@@ -44,6 +44,8 @@ public:
 
     virtual T *take(IqOrmObject *object) Q_DECL_OVERRIDE;
 
+    virtual T *takeFirst() Q_DECL_OVERRIDE;
+
     static bool truncate(QString *error = Q_NULLPTR);
 
     static bool truncate(IqOrmTransactionControl transaction,

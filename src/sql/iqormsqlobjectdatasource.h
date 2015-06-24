@@ -63,6 +63,8 @@ private:
 
     QString generateSelectQuery(const IqOrmMetaModel *ormModel, bool distinct = false) const;
 
+    QString generateSelectCountQuery(const IqOrmMetaModel *ormModel) const;
+
 private:
     IqOrmSqlDataSource* m_sqlDataSource;
     IqOrmSqlPropertyDescriptionsProcessor *m_propertyDescriptionsProcessor;

@@ -45,6 +45,7 @@ class IQORMSHARED_EXPORT IqOrmBaseModel : public QAbstractTableModel
     Q_PROPERTY(IqOrmError * lastError READ lastError CONSTANT)
     Q_PROPERTY(qint64 count READ count NOTIFY countChanged)
     Q_PROPERTY(IqOrmAbstractDataSource * dataSource READ dataSource WRITE setDataSource NOTIFY dataSourceChanged)
+    Q_ENUMS(OrderBy)
 
 public:
     enum OrderBy
@@ -68,6 +69,8 @@ public:
     virtual IqOrmObject *take(int row);
 
     virtual IqOrmObject *take(IqOrmObject *object);
+
+    virtual IqOrmObject *takeFirst();
 
     QVariant objectData(qint64 row, const QString &property) const;
 
@@ -105,6 +108,8 @@ public:
 
     Q_INVOKABLE bool loadLast(qint64 count,
                               IqOrmTransactionControl transaction = IqOrmTransactionControl());
+
+    Q_INVOKABLE qint64 loadCount(IqOrmTransactionControl transaction = IqOrmTransactionControl()) const;
 
     Q_INVOKABLE bool truncate(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 

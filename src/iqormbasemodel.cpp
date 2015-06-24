@@ -285,6 +285,42 @@ bool IqOrmBaseModel::truncate(IqOrmTransactionControl transaction)
     return result;
 }
 
+qint64 IqOrmBaseModel::loadCount(IqOrmTransactionControl transaction) const
+{
+    lastError()->clearError();
+
+    IqOrmAbstractDataSource *ds = usedDataSource();
+    Q_CHECK_PTR(ds);
+
+    if (transaction.isValid()
+            && transaction.dataSource() != ds) {
+        m_lastError->setText(QObject::tr("The transaction is open for another data source."));
+        return -1;
+    }
+
+    IqOrmTransactionControl transactionControl = transaction;
+    if (!transactionControl.isValid())
+        transactionControl = ds->transaction();
+
+    const IqOrmMetaModel *ormModel = childsOrmMetaModel();
+    if (!ormModel) {
+        lastError()->setText(QObject::tr("Not found valid child objects ORM model."));
+        return -1;
+    }
+
+    qint64 countResult;
+    IqOrmDataSourceOperationResult result = ds->objectsModelDataSource()->loadCount(this, &countResult);
+
+    if (result) {
+        if (!transaction.isValid())
+            transactionControl.commit();
+    } else {
+        lastError()->setText(result.error());
+    }
+
+    return countResult;
+}
+
 QList<IqOrmObject *> IqOrmBaseModel::toObjectList()
 {
     QList<IqOrmObject *> result;
@@ -633,6 +669,11 @@ IqOrmObject *IqOrmBaseModel::take(IqOrmObject *object)
     return Q_NULLPTR;
 }
 
+IqOrmObject *IqOrmBaseModel::takeFirst()
+{
+    return take(0);
+}
+
 QVariant IqOrmBaseModel::objectData(qint64 row, const QString &property) const
 {
     Q_ASSERT(row > -1);
@@ -717,9 +758,10 @@ Qt::ItemFlags IqOrmBaseModel::flags(const QModelIndex &index) const
 QHash<int, QByteArray> IqOrmBaseModel::roleNames() const
 {
     QHash<int, QByteArray> result;
+    result[FIRST_QML_ROLE] = "objectId";
 
     Q_CHECK_PTR(childsOrmMetaModel());
-    int i = FIRST_QML_ROLE;
+    int i = FIRST_QML_ROLE + 1;
     foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(childsOrmMetaModel())) {
         result[i] = propertyDescription->propertyName().toLocal8Bit().constData();
         ++i;

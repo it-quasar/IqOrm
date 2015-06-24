@@ -229,6 +229,99 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
     return result;
 }
 
+IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadCount(const IqOrmBaseModel *model, qint64 *count)
+{
+#if defined(IQORM_DEBUG_MODE)
+    QTime elaplesTime;
+    elaplesTime.start();
+    qDebug("Ok. Start load count for model IqOrmModel<%s>.",
+           IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className());
+#endif
+
+    IqOrmDataSourceOperationResult result;
+    Q_CHECK_PTR(model);
+    Q_CHECK_PTR(m_sqlDataSource);
+
+    const IqOrmMetaModel *ormModel = model->childsOrmMetaModel();
+    Q_CHECK_PTR(ormModel);
+
+    bool ok = false;
+    QString error;
+    //Для генерации запроса используем генератор запросов объекта
+    QString queryStr = m_sqlDataSource->objectDataSource()->generateSelectCountQuery(ormModel);
+    Q_ASSERT(!queryStr.isEmpty());
+
+    QList<QVariant> bindValues;
+
+    //Сформируем WHERE
+    QString whereStr;
+    //Добавим список фильтров
+    whereStr = filterString(ormModel, model->filters(), &bindValues, &ok, &error);
+
+#if defined(IQORM_DEBUG_MODE)
+    if (ok)
+        qDebug("Ok. Create filter for IqOrmModel<%s> completed in %d msec.",
+               IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
+               elaplesTime.elapsed());
+    else
+        qWarning("Error. Error on create filter for IqOrmModel<%s> in %d msec. Error: %s",
+                 IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
+                 elaplesTime.elapsed(),
+                 error.toLocal8Bit().constData());
+#endif
+
+    if (!ok) {
+        result.setError(error);
+        return result;
+    }
+
+    //Добавим WHERE
+    if (!whereStr.isEmpty())
+        queryStr.append(QString("\n    WHERE %0").arg(whereStr));
+
+    //Временно удалим GROUP BY. Надо вспомнить зачем она тут вообще
+//    queryStr.append("\n    GROUP BY ");
+//    queryStr.append(m_sqlDataSource->escapedTableName(ormModel->tableName()));
+//    queryStr.append(".");
+//    queryStr.append(m_sqlDataSource->escapedIdFieldName());
+
+#if defined(IQORM_DEBUG_MODE)
+    qDebug("Ok. Query for load count for model IqOrmModel<%s> prepared in %d msec.",
+           IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
+           elaplesTime.elapsed());
+#endif
+
+    QSqlQuery query = m_sqlDataSource->execQuery(queryStr, bindValues, true, &ok, &error);
+
+#if defined(IQORM_DEBUG_MODE)
+    if (ok)
+        qDebug("Ok. Query for load count for model IqOrmModel<%s> executed in %d msec.",
+               IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
+               elaplesTime.elapsed());
+    else
+        qWarning("Error. Query for load count for model IqOrmModel<%s> executed in %d msec. Error: \"%s\".",
+               IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
+               elaplesTime.elapsed(),
+               error.toLocal8Bit().constData());
+#endif
+
+    if (!ok) {
+        result.setError(error);
+        return result;
+    }
+
+    query.next();
+    *count = query.value(0).toLongLong();
+
+#if defined(IQORM_DEBUG_MODE)
+    qDebug("Ok. Load count for model IqOrmModel<%s> fineshed in %d msec.",
+           IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
+           elaplesTime.elapsed());
+#endif
+
+    return result;
+}
+
 IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::truncateModel(const IqOrmMetaModel *ormModel)
 {
     IqOrmDataSourceOperationResult result;
@@ -673,6 +766,9 @@ bool IqOrmSqlModelDataSource::postLoadFiltering(const IqOrmBaseModel *model, con
 
 bool IqOrmSqlModelDataSource::dataMatchToFilter(const IqOrmMetaModel *ormMetaModel, const IqOrmAbstractFilter *filter, const IqOrmObjectRawData &rawData) const
 {
+    if (!filter)
+        return true;
+
     const IqOrmFilter *directFilter = qobject_cast<const IqOrmFilter *>(filter);
     if (directFilter) {
         const IqOrmPropertyDescription *propDescription = IqOrmMetaModelPrivateAccessor::propertyDescription(ormMetaModel, directFilter->property());
