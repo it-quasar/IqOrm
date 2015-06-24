@@ -20,6 +20,9 @@
 #include "iqormsqlinversedonetoonepropertydescriptionprocessor.h"
 #include "iqorminversedonetoonepropertychanges.h"
 #include "iqormonetoonepropertychanges.h"
+#include "iqormmetamodelprivateaccessor.h"
+
+using namespace IqOrmPrivate;
 
 IqOrmSqlInversedOneToOnePropertyDescriptionProcessor::IqOrmSqlInversedOneToOnePropertyDescriptionProcessor() :
     IqOrmSqlOneObjectDescrtibingPropertyDescriptionProcessor()
@@ -134,7 +137,7 @@ bool IqOrmSqlInversedOneToOnePropertyDescriptionProcessor::removeAllowed(IqOrmDa
         if (brokenObjectId != -1) {
             //В таблице есть запись с данны ид, ошибка
             result->setError(QObject::tr("%0 with id %1 can not be NULL.")
-                             .arg(associatedOrmModel()->targetStaticMetaObject()->className())
+                             .arg(IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(associatedOrmModel())->className())
                              .arg(brokenObjectId)
                              .arg(associatedPropertyDescription()->propertyName()));
             return false;
@@ -282,7 +285,8 @@ const IqOrmBaseOneToOnePropertyDescription *IqOrmSqlInversedOneToOnePropertyDesc
 {
     Q_CHECK_PTR(propertyDescription());
     Q_CHECK_PTR(associatedOrmModel());
-    return qobject_cast<const IqOrmBaseOneToOnePropertyDescription *>(associatedOrmModel()->propertyDescription(propertyDescription()->mappedBy()));
+    const IqOrmPropertyDescription *result = IqOrmMetaModelPrivateAccessor::propertyDescription(associatedOrmModel(), propertyDescription()->mappedBy());
+    return qobject_cast<const IqOrmBaseOneToOnePropertyDescription *>(result);
 }
 
 QString IqOrmSqlInversedOneToOnePropertyDescriptionProcessor::escapedAssociatedObjectTableName() const

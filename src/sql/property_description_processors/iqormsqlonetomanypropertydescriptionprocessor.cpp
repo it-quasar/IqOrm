@@ -20,7 +20,10 @@
 #include "iqormsqlonetomanypropertydescriptionprocessor.h"
 #include "iqormonetomanypropertychanges.h"
 #include "iqormmanytoonepropertychanges.h"
+#include "iqormmetamodelprivateaccessor.h"
 #include <QDebug>
+
+using namespace IqOrmPrivate;
 
 IqOrmSqlOneToManyPropertyDescriptionProcessor::IqOrmSqlOneToManyPropertyDescriptionProcessor() :
     IqOrmSqlManyObjectsDescribingPropertyDescriptionProcessor()
@@ -132,7 +135,7 @@ bool IqOrmSqlOneToManyPropertyDescriptionProcessor::removeAllowed(IqOrmDataSourc
             }
             //В таблице есть запись с данны ид, ошибка
             result->setError(QObject::tr("%0 with ids %1 can not be NULL.")
-                             .arg(associatedOrmModel()->targetStaticMetaObject()->className())
+                             .arg(IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(associatedOrmModel())->className())
                              .arg(ids.join(", ")));
             return false;
         }
@@ -146,7 +149,8 @@ const IqOrmBaseManyToOnePropertyDescription *IqOrmSqlOneToManyPropertyDescriptio
 {
     Q_CHECK_PTR(propertyDescription());
     Q_CHECK_PTR(associatedOrmModel());
-    return qobject_cast<const IqOrmBaseManyToOnePropertyDescription *>(associatedOrmModel()->propertyDescription(propertyDescription()->mappedBy()));
+    const IqOrmPropertyDescription *result = IqOrmMetaModelPrivateAccessor::propertyDescription(associatedOrmModel(), propertyDescription()->mappedBy());
+    return qobject_cast<const IqOrmBaseManyToOnePropertyDescription *>(result);
 }
 
 QString IqOrmSqlOneToManyPropertyDescriptionProcessor::escapedAssociatedObjectTableName() const

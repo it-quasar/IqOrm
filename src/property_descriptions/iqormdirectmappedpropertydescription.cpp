@@ -20,6 +20,9 @@
 #include "iqormdirectmappedpropertydescription.h"
 #include "iqormmetamodel.h"
 #include "iqorminversedmappedpropertydescription.h"
+#include "iqormmetamodelprivateaccessor.h"
+
+using namespace IqOrmPrivate;
 
 IqOrmDirectMappedPropertyDescription::IqOrmDirectMappedPropertyDescription(IqOrmMetaModel *parent) :
     IqOrmMappedPropertyDescription(parent),
@@ -36,7 +39,7 @@ const IqOrmPropertyDescription *IqOrmDirectMappedPropertyDescription::inversedPr
     m_inversedPropertyDescriptionAlreadyLooking = true;
     const IqOrmMetaModel *ormModel = associatedObjectOrmModel();
     Q_CHECK_PTR(ormModel);
-    foreach (const IqOrmPropertyDescription *propertyDescription, ormModel->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(ormModel)) {
         const IqOrmInversedMappedPropertyDescription *inversedProperty = qobject_cast<const IqOrmInversedMappedPropertyDescription *>(propertyDescription);
         if (!inversedProperty)
             continue;

@@ -19,6 +19,9 @@
 
 #include "iqorminversedmappedpropertydescription.h"
 #include "iqormmetamodel.h"
+#include "iqormmetamodelprivateaccessor.h"
+
+using namespace IqOrmPrivate;
 
 IqOrmInversedMappedPropertyDescription::IqOrmInversedMappedPropertyDescription(IqOrmMetaModel *parent) :
     IqOrmMappedPropertyDescription(parent),
@@ -36,7 +39,7 @@ const IqOrmPropertyDescription *IqOrmInversedMappedPropertyDescription::inversed
     const IqOrmMetaModel *ormModel = associatedObjectOrmModel();
     Q_CHECK_PTR(ormModel);
     Q_ASSERT(!mappedBy().isEmpty());
-    m_inversedPropertyDescription = ormModel->propertyDescription(mappedBy());
+    m_inversedPropertyDescription = IqOrmMetaModelPrivateAccessor::propertyDescription(ormModel, mappedBy());
     return m_inversedPropertyDescription;
 }
 

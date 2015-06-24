@@ -32,6 +32,10 @@
 #include "iqormsqlmanytomanypropertydescriptionprocessor.h"
 #include "iqormsqlinversedmanytomanypropertydescriptionprocessor.h"
 
+#include "iqormmetamodelprivateaccessor.h"
+
+using namespace IqOrmPrivate;
+
 IqOrmSqlPropertyDescriptionsProcessor::IqOrmSqlPropertyDescriptionsProcessor(QObject *parent) :
     QObject(parent),
     m_sqlDataSource(Q_NULLPTR)
@@ -42,7 +46,7 @@ QStringList IqOrmSqlPropertyDescriptionsProcessor::selectFieldNames(const IqOrmM
 {
     Q_CHECK_PTR(ormModel);
     QStringList result;
-    foreach (const IqOrmPropertyDescription *propertyDescription, ormModel->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(ormModel)) {
         Q_CHECK_PTR(propertyDescription);
         QString fieldName = processor(propertyDescription, Q_NULLPTR, ormModel)->selectFieldName();
         if (!fieldName.isEmpty())
@@ -56,7 +60,7 @@ QStringList IqOrmSqlPropertyDescriptionsProcessor::insertFieldNames(const IqOrmM
 {
     Q_CHECK_PTR(ormModel);
     QStringList result;
-    foreach (const IqOrmPropertyDescription *propertyDescription, ormModel->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(ormModel)) {
         Q_CHECK_PTR(propertyDescription);
         if (propertyDescription->readOnly())
             continue;
@@ -90,7 +94,7 @@ QVariantList IqOrmSqlPropertyDescriptionsProcessor::insertValues(const IqOrmObje
     Q_CHECK_PTR(object);
     Q_CHECK_PTR(object->ormMetaModel());
     QVariantList result;
-    foreach (const IqOrmPropertyDescription *propertyDescription, object->ormMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(object->ormMetaModel())) {
         Q_CHECK_PTR(propertyDescription);
         if (propertyDescription->readOnly())
             continue;
@@ -123,7 +127,7 @@ QList<IqOrmSqlJoinOperation> IqOrmSqlPropertyDescriptionsProcessor::selectJoinOp
 {
     Q_CHECK_PTR(ormModel);
     QList<IqOrmSqlJoinOperation> result;
-    foreach (const IqOrmPropertyDescription *propertyDescription, ormModel->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(ormModel)) {
         Q_CHECK_PTR(propertyDescription);
         result << processor(propertyDescription, Q_NULLPTR, ormModel)->selectJoinOperations();
     }
@@ -136,7 +140,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::selectAllowed(const IqOrmObject *obj
 {
     Q_CHECK_PTR(object);
     Q_CHECK_PTR(object->ormMetaModel());
-    foreach (const IqOrmPropertyDescription *propertyDescription, object->ormMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(object->ormMetaModel())) {
         Q_CHECK_PTR(propertyDescription);
         if(!processor(propertyDescription, object)->selectAllowed(result))
             return false;
@@ -150,7 +154,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::insertAllowed(const IqOrmObject *obj
 {
     Q_CHECK_PTR(object);
     Q_CHECK_PTR(object->ormMetaModel());
-    foreach (const IqOrmPropertyDescription *propertyDescription, object->ormMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(object->ormMetaModel())) {
         Q_CHECK_PTR(propertyDescription);
         if (propertyDescription->readOnly())
             continue;
@@ -181,7 +185,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::removeAllowed(const IqOrmObject *obj
 {
     Q_CHECK_PTR(object);
     Q_CHECK_PTR(object->ormMetaModel());
-    foreach (const IqOrmPropertyDescription *propertyDescription, object->ormMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(object->ormMetaModel())) {
         Q_CHECK_PTR(propertyDescription);
         if (propertyDescription->readOnly())
             continue;
@@ -197,7 +201,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::preSelect(const IqOrmObject *object,
 {
     Q_CHECK_PTR(object);
     Q_CHECK_PTR(object->ormMetaModel());
-    foreach (const IqOrmPropertyDescription *propertyDescription, object->ormMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(object->ormMetaModel())) {
         Q_CHECK_PTR(propertyDescription);
         if(!processor(propertyDescription, object)->preSelect(result))
             return false;
@@ -211,7 +215,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::preInsert(const IqOrmObject *object,
 {
     Q_CHECK_PTR(object);
     Q_CHECK_PTR(object->ormMetaModel());
-    foreach (const IqOrmPropertyDescription *propertyDescription, object->ormMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(object->ormMetaModel())) {
         Q_CHECK_PTR(propertyDescription);
         if (propertyDescription->readOnly())
             continue;
@@ -242,7 +246,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::preRemove(const IqOrmObject *object,
 {
     Q_CHECK_PTR(object);
     Q_CHECK_PTR(object->ormMetaModel());
-    foreach (const IqOrmPropertyDescription *propertyDescription, object->ormMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(object->ormMetaModel())) {
         Q_CHECK_PTR(propertyDescription);
         if (propertyDescription->readOnly())
             continue;
@@ -258,7 +262,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::postSelect(const IqOrmObject *object
 {
     Q_CHECK_PTR(object);
     Q_CHECK_PTR(object->ormMetaModel());
-    foreach (const IqOrmPropertyDescription *propertyDescription, object->ormMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(object->ormMetaModel())) {
         Q_CHECK_PTR(propertyDescription);
         if(!processor(propertyDescription, object)->postSelect(result))
             return false;
@@ -272,7 +276,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::postInsert(const IqOrmObject *object
 {
     Q_CHECK_PTR(object);
     Q_CHECK_PTR(object->ormMetaModel());
-    foreach (const IqOrmPropertyDescription *propertyDescription, object->ormMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(object->ormMetaModel())) {
         Q_CHECK_PTR(propertyDescription);
         if (propertyDescription->readOnly())
             continue;
@@ -303,7 +307,7 @@ bool IqOrmSqlPropertyDescriptionsProcessor::postRemove(const IqOrmObject *object
 {
     Q_CHECK_PTR(object);
     Q_CHECK_PTR(object->ormMetaModel());
-    foreach (const IqOrmPropertyDescription *propertyDescription, object->ormMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(object->ormMetaModel())) {
         Q_CHECK_PTR(propertyDescription);
         if (propertyDescription->readOnly())
             continue;

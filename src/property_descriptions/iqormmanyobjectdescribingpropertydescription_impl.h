@@ -30,6 +30,8 @@
 #include "iqormoneobjectdescribingpropertydescription.h"
 #include <QSet>
 
+using namespace IqOrmPrivate;
+
 template <class T>
 bool IqOrmManyObjectDescribingPropertyDescription::setPropertyValueFromObjectIds(const IqOrmPropertyDescription *propertyDescription,
                                                                                  IqOrmObject *object,
@@ -54,9 +56,9 @@ bool IqOrmManyObjectDescribingPropertyDescription::setPropertyValueFromObjectIds
             T* newObject = Q_NULLPTR;
             if (!objectId.isNull())
                 newObject = new T();
-            IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(newObject, intObjectId);
-            Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
-            IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(object, false);
+            IqOrmObjectPrivateAccessor::setObjectId(newObject, intObjectId);
+            Q_ASSERT(IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
+            IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(object, false);
             pointersList << newObject;
         }
         return propertyDescription->setValue(object, QVariant::fromValue(pointersList));
@@ -71,9 +73,9 @@ bool IqOrmManyObjectDescribingPropertyDescription::setPropertyValueFromObjectIds
             QPointer<T> pointer;
             if (!objectId.isNull())
                 pointer = new T();
-            IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(pointer, intObjectId);
-            Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
-            IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(object, false);
+            IqOrmObjectPrivateAccessor::setObjectId(pointer, intObjectId);
+            Q_ASSERT(IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
+            IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(object, false);
             pointersList << pointer;
         }
         return propertyDescription->setValue(object, QVariant::fromValue(pointersList));
@@ -102,9 +104,9 @@ bool IqOrmManyObjectDescribingPropertyDescription::setPropertyValueFromObjectIds
             QSharedPointer<T> pointer;
             if (!objectId.isNull())
                 pointer = QSharedPointer<T>::create();
-            IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(pointer.data(), intObjectId);
-            Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
-            IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(object, false);
+            IqOrmObjectPrivateAccessor::setObjectId(pointer.data(), intObjectId);
+            Q_ASSERT(IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(object));
+            IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(object, false);
             pointersList << pointer;
         }
         return propertyDescription->setValue(object, QVariant::fromValue(pointersList));

@@ -41,12 +41,6 @@ void IqOrmObjectPrivateAccessor::updateObjectSourceProperites(IqOrmObject *objec
     object->updateSourcePropertyValues();
 }
 
-void IqOrmObjectPrivateAccessor::resetObject(IqOrmObject *object)
-{
-    Q_CHECK_PTR(object);
-    object->reset();
-}
-
 QVariant IqOrmObjectPrivateAccessor::sourcePropertyValue(const IqOrmObject *object,
                                                          const IqOrmPropertyDescription *propertyDescription)
 {

@@ -26,6 +26,9 @@
 #include "iqormdirectpropertydescription.h"
 #include "iqormobjectfactory.h"
 #include "iqormobjectprivateaccessor.h"
+#include "iqormmetamodelprivateaccessor.h"
+
+using namespace IqOrmPrivate;
 
 IqOrmObjectSerializer::IqOrmObjectSerializer(QObject *parent) :
     QObject(parent)
@@ -50,7 +53,7 @@ QString IqOrmObjectSerializer::serialize(const IqOrmObject *object, const Format
 
         const IqOrmMetaModel *objectModel = object->ormMetaModel();
         Q_CHECK_PTR(objectModel);
-        foreach (const IqOrmPropertyDescription * propertyDescription, objectModel->propertyDescriptions()) {
+        foreach (const IqOrmPropertyDescription * propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(objectModel)) {
             Q_CHECK_PTR(propertyDescription);
             switch (propertyDescription->storedValue()) {
             case IqOrmPropertyDescription::SimpeVariant:
@@ -117,14 +120,14 @@ IqOrmObject* IqOrmObjectSerializer::deserialize(const QString &serializeData,
             return Q_NULLPTR;
         }
 
-        IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(object, rootObject.value("objectId").toInt(-1));
+        IqOrmObjectPrivateAccessor::setObjectId(object, rootObject.value("objectId").toInt(-1));
 
         QJsonObject propertiesObject = rootObject.value("properties").toObject();
         const IqOrmMetaModel *ormModel = object->ormMetaModel();
         Q_CHECK_PTR(ormModel);
 
         foreach (const QString &propertyName, propertiesObject.keys()) {
-            const IqOrmPropertyDescription *propDescription = ormModel->propertyDescription(propertyName);
+            const IqOrmPropertyDescription *propDescription = IqOrmMetaModelPrivateAccessor::propertyDescription(ormModel, propertyName);
             if (propDescription) {
                 switch (propDescription->storedValue()) {
                 case IqOrmPropertyDescription::SimpeVariant:
@@ -178,7 +181,7 @@ IqOrmObject* IqOrmObjectSerializer::deserialize(const QString &serializeData,
                 }
             } else {
                 qWarning() << tr("In class %0 not found property %1.")
-                              .arg(ormModel->targetStaticMetaObject()->className())
+                              .arg(IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(ormModel)->className())
                               .arg(propertyName);
             }
         }

@@ -27,6 +27,8 @@
 #include "iqormdirectmappedpropertydescription.h"
 #include "iqorminversedmappedpropertydescription.h"
 
+using namespace IqOrmPrivate;
+
 template <class T>
 bool IqOrmOneObjectDescribingPropertyDescription::setPropertyValueFromObjectId(const IqOrmPropertyDescription *propertyDescription,
                                                                                IqOrmObject *object,
@@ -48,17 +50,17 @@ bool IqOrmOneObjectDescribingPropertyDescription::setPropertyValueFromObjectId(c
         T* newObject = Q_NULLPTR;
         if (!objectId.isNull())
             newObject = new T();
-        IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(newObject, intObjectId);
-        Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(newObject));
-        IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(newObject, false);
+        IqOrmObjectPrivateAccessor::setObjectId(newObject, intObjectId);
+        Q_ASSERT(IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(newObject));
+        IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(newObject, false);
         return propertyDescription->setValue(object, QVariant::fromValue(newObject));
     } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<QPointer<T> >()))) {
         QPointer<T> pointer;
         if (!objectId.isNull())
             pointer = new T();
-        IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(pointer, intObjectId);
-        Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(pointer));
-        IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(pointer, false);
+        IqOrmObjectPrivateAccessor::setObjectId(pointer, intObjectId);
+        Q_ASSERT(IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(pointer));
+        IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(pointer, false);
         return propertyDescription->setValue(object, QVariant::fromValue(pointer));
     } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<IqOrmLazyPointer<T> >()))) {
         IqOrmLazyPointer<T> pointer;
@@ -69,9 +71,9 @@ bool IqOrmOneObjectDescribingPropertyDescription::setPropertyValueFromObjectId(c
         QSharedPointer<T> pointer;
         if (!objectId.isNull())
             pointer = QSharedPointer<T>::create();
-        IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectId(pointer.data(), intObjectId);
-        Q_ASSERT(IqOrmPrivate::IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(pointer.data()));
-        IqOrmPrivate::IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(pointer.data(), false);
+        IqOrmObjectPrivateAccessor::setObjectId(pointer.data(), intObjectId);
+        Q_ASSERT(IqOrmObjectPrivateAccessor::isObjectLoadedFromDataSource(pointer.data()));
+        IqOrmObjectPrivateAccessor::setObjectIsLoadedFromDataSource(pointer.data(), false);
         return propertyDescription->setValue(object, QVariant::fromValue(pointer));
     } else if (typeNameStr == QString(QMetaType::typeName(qMetaTypeId<IqOrmSharedLazyPointer<T> >()))) {
         IqOrmSharedLazyPointer<T> pointer;

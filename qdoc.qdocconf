@@ -1,0 +1,22 @@
+include($QT_INSTALL_DOCS/global/qt-module-defaults-online.qdocconf)
+
+#include($QT_INSTALL_DOCS/global/macros.qdocconf) #macros for QDoc commands
+#include($QT_INSTALL_DOCS/global/qt-cpp-defines.qdocconf) #needed by C++ projects
+#include($QT_INSTALL_DOCS/global/compat.qdocconf) #compatibility macros
+#include($QT_INSTALL_DOCS/global/fileextensions.qdocconf) #configuration common among QDoc projects
+#include($QT_INSTALL_DOCS/global/qt-html-templates-online.qdocconf) #offline HTML template for documentation shipped to Qt Creator
+
+project = IqOrm Libraty
+description = Sample QDoc project
+
+sourcedirs = $SRC/src
+headerdirs = $SRC/src
+exampledirs = $SRC/examples
+indexes = $QT_INSTALL_DOCS/qtcore/qtcore.index $QT_INSTALL_DOCS/qtsql/qtsql.index 
+
+defines = Q_QDOC
+
+depends = qtcore qtsql
+
+outputdir  =    $TARGET/doc/html
+outputformats = HTML

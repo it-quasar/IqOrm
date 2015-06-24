@@ -22,12 +22,15 @@
 #endif
 
 #include "iqormpropertydescription.h"
+#include "iqormmetamodelprivateaccessor.h"
+
+using namespace IqOrmPrivate;
 
 template <class T>
 IqOrmModel<T>::IqOrmModel(QObject *parent) :
     IqOrmBaseModel(parent)
 {
-    foreach (const IqOrmPropertyDescription *propertyDescription, childsOrmMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(childsOrmMetaModel())) {
         addPropertySiagnalIndex(propertyDescription->propertyName(), propertyDescription->targetStaticMetaPropery().notifySignalIndex());
     }
 }

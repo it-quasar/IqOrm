@@ -29,6 +29,7 @@
 #include "iqormlazypointerset.h"
 #include "iqormsharedlazypointerset.h"
 #include "iqormtransactioncontrol.h"
+#include "iqormerror.h"
 
 #define IQORM_REGISTER_CLASS(CLASS_NAME) \
     template<class T> int CLASS_NAME::IqOrmClassAutoRegistrer<T>::m_registered = 0; \
@@ -45,7 +46,7 @@
 
 #define IQORM_OBJECT \
     Q_PROPERTY(qint64 objectId READ objectId NOTIFY objectIdChanged) \
-    Q_PROPERTY(bool isValid READ isValid NOTIFY isValidChanged) \
+    Q_PROPERTY(bool isPersisted READ isPersisted NOTIFY isPersistedChanged) \
     Q_PROPERTY(const IqOrmError * lastError READ lastError CONSTANT) \
     Q_PROPERTY(IqOrmAbstractDataSource * dataSource READ dataSource WRITE setDataSource NOTIFY dataSourceChanged) \
 \
@@ -53,7 +54,7 @@ private: \
 \
     virtual void emitObjectIdChanged() Q_DECL_OVERRIDE {emit objectIdChanged();} \
 \
-    virtual void emitIsValidChanged() Q_DECL_OVERRIDE {emit isValidChanged();} \
+    virtual void emitIsPersistedChanged() Q_DECL_OVERRIDE {emit isPersistedChanged();} \
 \
     virtual void emitDataSourceChanged() Q_DECL_OVERRIDE {emit dataSourceChanged();} \
 \
@@ -61,7 +62,7 @@ public: \
 \
     static const IqOrmMetaModel* staticOrmMetaModel() \
     { \
-        Q_ASSERT_X(iqormClassRegistred(), \
+        Q_ASSERT_X(iqOrmClassRegistred(), \
             Q_FUNC_INFO, \
             tr("IqOrmObject not registerd. Check IQORM_REGISTER_CLASS macros for class %0.") \
                .arg(staticMetaObject.className()).toLocal8Bit().constData()); \
@@ -73,7 +74,7 @@ public: \
 \
     Q_SIGNAL void objectIdChanged(); \
 \
-    Q_SIGNAL void isValidChanged(); \
+    Q_SIGNAL void isPersistedChanged(); \
 \
     Q_SIGNAL void dataSourceChanged(); \
 \
@@ -92,7 +93,7 @@ public: \
         IqOrmClassAutoRegistrer() \
         { \
             if (m_registered++ == 0) { \
-                iqormClassRegistred(true); \
+                iqOrmClassRegistred(true); \
                 IqOrmLib::scheduleOrmModelInitialization<T>(); \
             } \
         } \
@@ -101,17 +102,17 @@ public: \
     }; \
 \
 private: \
-    static bool iqormClassRegistred(bool registred = false) \
+    static bool iqOrmClassRegistred(bool registred = false) \
     {\
         static bool m_registred (false); \
         if (registred) \
-        m_registred = true; \
+            m_registred = true; \
         return m_registred; \
     }
 
 
 
-
+class IqOrmAbstractTriggers;
 class IqOrmPropertyDescription;
 class IqOrmAbstractDataSource;
 class IqOrmSqlDataSource;
@@ -119,25 +120,32 @@ class IqOrmLocalSynchronizer;
 class IqOrmMetaModel;
 class IqOrmError;
 class IqOrmObjectRawData;
+namespace IqOrmPrivate {
+    class IqOrmObjectPrivateAccessor;
+}
 
 class IQORMSHARED_EXPORT IqOrmObject
 {
+#ifdef Q_QDOC
+    Q_PROPERTY(qint64 objectId READ objectId NOTIFY objectIdChanged)
+    Q_PROPERTY(bool isPersisted READ isPersisted NOTIFY isPersistedChanged)
+    Q_PROPERTY(const IqOrmError * lastError READ lastError CONSTANT)
+    Q_PROPERTY(IqOrmAbstractDataSource * dataSource READ dataSource WRITE setDataSource NOTIFY dataSourceChanged)
+signals:
+    void objectIdChanged();
+    void isPersistedChanged();
+    void dataSourceChanged();
 public:
-    explicit IqOrmObject(IqOrmAbstractDataSource* dataSource = Q_NULLPTR);
+    static const IqOrmMetaModel* staticOrmMetaModel();
+#endif
 
+public:
+    explicit IqOrmObject();
+
+#ifndef Q_QDOC
     virtual ~IqOrmObject();
+#endif
 
-    /*!
-     * \brief Инециализирует ORM-модель, связаную с данным объектом
-     *
-     * Для работы ORM, используются специальные модели, в которых описано какие параметры и как
-     * храняться в источниках данных. Данный метод вызывается объектом, имеющим интерфейсы ORM,
-     * для того чтобы инециализировать модель, связанную с ним. Модель инециализирутся только один
-     * раз и в дальнейшем она будет использоваться для любых объектов того же класса, поэтому данный
-     * метод выполниться только один раз в течении работы программы.
-     *
-     * \param model Указатель на ORM-модель
-     */
     virtual void initializeOrmMetaModel(IqOrmMetaModel *model) const = 0;
 
     virtual const IqOrmMetaModel *ormMetaModel() const;
@@ -153,30 +161,24 @@ public:
     bool remove(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
 protected:
-    /*!
-     * \brief Сбрасывает все параметры объекта
-     *
-     * Сбрасывает все параметры объекта на значения по-умолчанию. Данный метод должен быть обязательно
-     * переопределен в наследниках класса.
-     */
-    virtual void reset() = 0;
-
-    IqOrmAbstractTriggers *triggers() const;
+    virtual IqOrmAbstractTriggers *triggers() const;
 
 public:
     qint64 objectId() const;
 
-    bool isValid() const;
+    bool isPersisted() const;
 
     IqOrmAbstractDataSource *dataSource() const;
     void setDataSource(IqOrmAbstractDataSource* dataSource);
 
     const IqOrmError *lastError() const;
 
+#ifndef Q_QDOC
 protected:
     virtual void emitObjectIdChanged() = 0;
-    virtual void emitIsValidChanged() = 0;
+    virtual void emitIsPersistedChanged() = 0;
     virtual void emitDataSourceChanged() = 0;
+#endif
 
 private:
     friend class IqOrmMetaModel;
@@ -186,31 +188,12 @@ private:
 
     IqOrmAbstractDataSource *usedDataSource() const;
 
-    /*!
-     * \brief Обновляет сохраненные свойства объекта из источника
-     */
     void updateSourcePropertyValues();
 
-    /*!
-     * \brief Отчищает сохраненные свойства объекта из источника
-     */
     void clearSourcePropertyValues();
 
-    /*!
-     * \brief Возвращает свойства объекта, которые были изменены
-     *
-     * Сравнивает текущие свойства объекта со свойствами объекта из источника данных и возвращает
-     * названия свойств объекта отличных от свойст объекта в источнике данных.
-     *
-     * \return Список свойств объекта
-     */
     QSet<const IqOrmPropertyDescription *> sourcePropertyChanges() const;
 
-    /*!
-     * \brief Возвращает первоночальное (сохраненное в источнике данных) свойство объекта
-     * \param propertyDescription Описание свойства
-     * \return Свойство объекта
-     */
     QVariant sourcePropertyValue(const IqOrmPropertyDescription *propertyDescription) const;
 
     bool isLoadedFromDataSource() const;

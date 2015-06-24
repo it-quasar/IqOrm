@@ -39,22 +39,11 @@ public:
 
     virtual IqOrmDataSourceOperationResult loadObjectById(IqOrmObject* object, qint64 id) const = 0;
 
-//    virtual bool loadMappedProperty(IqOrmObject *object, const QString &property) const = 0;
-
-//    virtual bool loadObjectManyToManyReference(IqOrmObject *object, const QString &referenceProperty) const = 0;
-
     virtual IqOrmDataSourceOperationResult updateObject(IqOrmObject* object, const QSet<const IqOrmPropertyDescription *> &properties) = 0;
 
     virtual IqOrmDataSourceOperationResult insertObject(IqOrmObject *object) = 0;
 
     virtual IqOrmDataSourceOperationResult removeObject(IqOrmObject* object) = 0;
-
-//    bool loadObjectAllManyToManyReferences(IqOrmObject *object) const;
-
-protected:
-    static void resetObject(IqOrmObject* object);
-
-    static void resetObjectReference(IqOrmObject *object) Q_DECL_DEPRECATED;
 };
 
 #endif // IQORMABSTRACTOBJECTDATASOURCE_H

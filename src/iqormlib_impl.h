@@ -25,6 +25,9 @@
 #include "iqormmetamodel.h"
 #include <QMetaType>
 #include <QDebug>
+#include "iqormmetamodelprivateaccessor.h"
+
+using namespace IqOrmPrivate;
 
 template <class T>
 void IqOrmLib::ormModelIninitializator()
@@ -37,12 +40,12 @@ void IqOrmLib::ormModelIninitializator()
     const IqOrmMetaModel *staticMetaModel = T::staticOrmMetaModel();
     Q_CHECK_PTR(staticMetaModel);
     IqOrmMetaModel * metaModel = const_cast<IqOrmMetaModel *>(staticMetaModel);
-    metaModel->setTargetStaticMetaObject(&T::staticMetaObject);
+    IqOrmMetaModelPrivateAccessor::setTargetStaticMetaObject(metaModel, &T::staticMetaObject);
     tempObject.initializeOrmMetaModel(metaModel);
-    Q_ASSERT_X(metaModel->isValid(),
+    Q_ASSERT_X(IqOrmMetaModelPrivateAccessor::isValid(metaModel),
                Q_FUNC_INFO,
-               QObject::tr("IqOrmModel for class %0 not valid.")
-               .arg(T::staticMetaObject.className()).toLocal8Bit().constData());
+               qPrintable(QObject::tr("IqOrmModel for class %0 not valid.")
+                          .arg(T::staticMetaObject.className())));
 }
 
 template <class T>

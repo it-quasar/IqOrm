@@ -36,7 +36,9 @@
 #include "iqormdatasourceoperationresult.h"
 #include "iqormdirectpropertydescription.h"
 #include "iqormmanytoonepropertydescription.h"
+#include "iqormmetamodelprivateaccessor.h"
 
+using namespace IqOrmPrivate;
 
 IqOrmSqlModelDataSource::IqOrmSqlModelDataSource(IqOrmSqlDataSource *sqlDataSource) :
     IqOrmAbstractModelDataSource(sqlDataSource),
@@ -53,7 +55,7 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
     QTime elaplesTime;
     elaplesTime.start();
     qDebug("Ok. Start load model IqOrmModel<%s>.",
-           model->childsOrmMetaModel()->targetStaticMetaObject()->className());
+           IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className());
 #endif
 
     IqOrmDataSourceOperationResult result;
@@ -79,11 +81,11 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
 #if defined(IQORM_DEBUG_MODE)
     if (ok)
         qDebug("Ok. Create filter for IqOrmModel<%s> completed in %d msec.",
-               model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+               IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
                elaplesTime.elapsed());
     else
         qWarning("Error. Error on create filter for IqOrmModel<%s> in %d msec. Error: %s",
-                 model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+                 IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
                  elaplesTime.elapsed(),
                  error.toLocal8Bit().constData());
 #endif
@@ -175,7 +177,7 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
 
 #if defined(IQORM_DEBUG_MODE)
     qDebug("Ok. Query for load model IqOrmModel<%s> prepared in %d msec.",
-           model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+           IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
            elaplesTime.elapsed());
 #endif
 
@@ -184,11 +186,11 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
 #if defined(IQORM_DEBUG_MODE)
     if (ok)
         qDebug("Ok. Query for load model IqOrmModel<%s> executed in %d msec.",
-               model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+               IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
                elaplesTime.elapsed());
     else
         qWarning("Error. Query for load model IqOrmModel<%s> executed in %d msec. Error: \"%s\".",
-               model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+               IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
                elaplesTime.elapsed(),
                error.toLocal8Bit().constData());
 #endif
@@ -212,7 +214,7 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
 
 #if defined(IQORM_DEBUG_MODE)
     qDebug("Ok. Walking on query for load model IqOrmModel<%s> fineshed in %d msec.",
-           model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+           IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
            elaplesTime.elapsed());
 #endif
 
@@ -220,7 +222,7 @@ IqOrmDataSourceOperationResult IqOrmSqlModelDataSource::loadModel(IqOrmBaseModel
 
 #if defined(IQORM_DEBUG_MODE)
     qDebug("Ok. Load model IqOrmModel<%s> fineshed in %d msec.",
-           model->childsOrmMetaModel()->targetStaticMetaObject()->className(),
+           IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(model->childsOrmMetaModel())->className(),
            elaplesTime.elapsed());
 #endif
 
@@ -315,7 +317,7 @@ QString IqOrmSqlModelDataSource::simpleFilterString(const IqOrmMetaModel *ormMod
     }
 
     //Получим свойство модели
-    const IqOrmPropertyDescription *propDescription = ormModel->propertyDescription(filter->property());
+    const IqOrmPropertyDescription *propDescription = IqOrmMetaModelPrivateAccessor::propertyDescription(ormModel, filter->property());
     if (propDescription) {
         switch (propDescription->mappedType()) {
         case IqOrmPropertyDescription::Direct: {
@@ -340,7 +342,7 @@ QString IqOrmSqlModelDataSource::simpleFilterString(const IqOrmMetaModel *ormMod
         *ok = false;
         *errorString = tr ("Property \"%0\" of IqOrmFilter not found in class \"%1\".")
                 .arg(filter->property())
-                .arg(ormModel->targetStaticMetaObject()->className());
+                .arg(IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(ormModel)->className());
         return "";
     }
 
@@ -673,7 +675,7 @@ bool IqOrmSqlModelDataSource::dataMatchToFilter(const IqOrmMetaModel *ormMetaMod
 {
     const IqOrmFilter *directFilter = qobject_cast<const IqOrmFilter *>(filter);
     if (directFilter) {
-        const IqOrmPropertyDescription *propDescription = ormMetaModel->propertyDescription(directFilter->property());
+        const IqOrmPropertyDescription *propDescription = IqOrmMetaModelPrivateAccessor::propertyDescription(ormMetaModel, directFilter->property());
         QVariant::Type propertyType;
         if (propDescription) {
             propertyType = propDescription->targetStaticMetaPropery().type();

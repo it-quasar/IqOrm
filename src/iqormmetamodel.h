@@ -33,8 +33,10 @@
 #include "iqormjointable.h"
 
 class IqOrmObject;
-class IqOrmQmlObject;
 class IqOrmAbstractTriggers;
+namespace IqOrmPrivate {
+    class IqOrmMetaModelPrivateAccessor;
+}
 
 class IQORMSHARED_EXPORT IqOrmMetaModel: public QObject
 {
@@ -45,8 +47,8 @@ class IQORMSHARED_EXPORT IqOrmMetaModel: public QObject
 public:
     explicit IqOrmMetaModel(QObject *parent = Q_NULLPTR);
 
-    void setPropertyColumn(const QString &property,
-                           const QString &columnName = QString());
+    void setDirect(const QString &property,
+                   const QString &columnName = QString());
 
     template <class T>
     void setOneToOne(const QString &property,
@@ -79,20 +81,13 @@ public:
     void setReadOnly(const QString &property,
                      bool readOnly = true);
 
-    QStringList sourcesIdList() const;
-
-    QSet<const IqOrmPropertyDescription *> propertyDescriptions() const;
-
-    const IqOrmPropertyDescription * propertyDescription(const QString &propertyName) const;
-
-    bool isValid() const;
+public:
+    void setPropertyColumn(const QString &property,
+                           const QString &columnName = QString()) Q_DECL_DEPRECATED;
 
 public:
     QString tableName() const;
     void setTableName(const QString tableName);
-
-    const QMetaObject *targetStaticMetaObject() const;
-    void setTargetStaticMetaObject(const QMetaObject *targetStaticMetaObject);
 
     IqOrmAbstractTriggers *triggers() const;
     void setTriggers(IqOrmAbstractTriggers *triggers);
@@ -102,12 +97,23 @@ signals:
     void triggersChanged();
 
 private:
+    const QMetaObject *targetStaticMetaObject() const;
+    void setTargetStaticMetaObject(const QMetaObject *targetStaticMetaObject);
+
+    QStringList sourcesIdList() const;
+
+    QSet<const IqOrmPropertyDescription *> propertyDescriptions() const;
+
+    const IqOrmPropertyDescription * propertyDescription(const QString &propertyName) const;
+
+    bool isValid() const;
+
     bool addPropertyOrmDescription(IqOrmPropertyDescription *description);
     bool checkPropertyDescriptionIsValid(const IqOrmPropertyDescription *propertyDescription) const;
 
 private:
     friend class IqOrmObject;
-    friend class IqOrmQmlObject;
+    friend class IqOrmPrivate::IqOrmMetaModelPrivateAccessor;
 
     QSet<const IqOrmPropertyDescription *> m_propertyDescriptions;
 

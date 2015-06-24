@@ -20,6 +20,10 @@
 #include "iqormlib.h"
 #include <QDebug>
 
+/*!
+ * \module IqOrm
+ */
+
 QList<void (*)()> IqOrmLib::m_ormModelInitializators;
 
 IqOrmLib::IqOrmLib()

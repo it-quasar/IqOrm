@@ -20,8 +20,11 @@
 #include "iqormsqlinversedmanytomanypropertydescriptionprocessor.h"
 #include "iqormsqlmanytomanypropertychanges.h"
 #include "iqormsqlinversedmanytomanypropertychanges.h"
+#include "iqormmetamodelprivateaccessor.h"
 #include <QPair>
 #include <QDebug>
+
+using namespace IqOrmPrivate;
 
 IqOrmSqlInversedManyToManyPropertyDescriptionProcessor::IqOrmSqlInversedManyToManyPropertyDescriptionProcessor() :
     IqOrmSqlManyObjectsDescribingPropertyDescriptionProcessor()
@@ -169,7 +172,8 @@ const IqOrmBaseManyToManyPropertyDescription *IqOrmSqlInversedManyToManyProperty
 {
     Q_CHECK_PTR(propertyDescription());
     Q_CHECK_PTR(associatedOrmModel());
-    return qobject_cast<const IqOrmBaseManyToManyPropertyDescription *>(associatedOrmModel()->propertyDescription(propertyDescription()->mappedBy()));
+    const IqOrmPropertyDescription *result = IqOrmMetaModelPrivateAccessor::propertyDescription(associatedOrmModel(), propertyDescription()->mappedBy());
+    return qobject_cast<const IqOrmBaseManyToManyPropertyDescription *>(result);
 }
 
 QString IqOrmSqlInversedManyToManyPropertyDescriptionProcessor::escapedAssociatedObjectTableName() const

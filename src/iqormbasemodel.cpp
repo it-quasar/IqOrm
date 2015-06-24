@@ -34,9 +34,12 @@
 #include "iqormabstracttriggers.h"
 #include "iqormobjectrawdata.h"
 #include "iqormtransactioncontrol.h"
+#include "iqormmetamodelprivateaccessor.h"
 #include <QMetaProperty>
 #include <QQuickItem>
 #include <QDebug>
+
+using namespace IqOrmPrivate;
 
 IqOrmBaseModel::IqOrmModelItem::IqOrmModelItem() :
     object(Q_NULLPTR),
@@ -380,8 +383,8 @@ void IqOrmBaseModel::setObjectsValues(const QList<IqOrmObjectRawData> &objectVal
 
             //Установим для объекта параметры из запроса
             if (item->object) {
-                IqOrmPrivate::IqOrmObjectPrivateAccessor::setVaules(item->object, rawData);
-                IqOrmPrivate::IqOrmObjectPrivateAccessor::updateObjectSourceProperites(item->object);
+                IqOrmObjectPrivateAccessor::setVaules(item->object, rawData);
+                IqOrmObjectPrivateAccessor::updateObjectSourceProperites(item->object);
             } else {
                 item->rawData = rawData;
             }
@@ -450,7 +453,7 @@ void IqOrmBaseModel::enableChildMonitoring(IqOrmObject *child) const
 {
     QObject *qobject = dynamic_cast<QObject *>(child);
     Q_CHECK_PTR(qobject);
-    foreach (const IqOrmPropertyDescription *propetyDescription, childsOrmMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propetyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(childsOrmMetaModel())) {
         QMetaMethod notifiSignal = propetyDescription->targetStaticMetaPropery().notifySignal();
         if (!notifiSignal.isValid())
             continue;
@@ -475,7 +478,7 @@ void IqOrmBaseModel::createItemObject(IqOrmBaseModel::IqOrmModelItem *item, qint
     if (!item->object) {
         IqOrmObject *itemObject = createChildObject();
 
-        IqOrmAbstractTriggers *triggers = IqOrmPrivate::IqOrmObjectPrivateAccessor::triggers(itemObject);
+        IqOrmAbstractTriggers *triggers = IqOrmObjectPrivateAccessor::triggers(itemObject);
         IqOrmAbstractDataSource *ds = usedDataSource();
         Q_CHECK_PTR (ds);
         IqOrmTransactionControl transactionControll;
@@ -493,14 +496,14 @@ void IqOrmBaseModel::createItemObject(IqOrmBaseModel::IqOrmModelItem *item, qint
             bool result = triggers->preLoad(itemObject, transactionControll, operationPlan, &error);
             if (!result)
                 qWarning("On create IqOrmModel<%s> item object pre load triggers return error: \"%s\".",
-                         childsOrmMetaModel()->targetStaticMetaObject()->className(),
+                         IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(childsOrmMetaModel())->className(),
                          error.toLocal8Bit().constData());
 
             triggersOk = triggersOk && result;
         }
 
-        IqOrmPrivate::IqOrmObjectPrivateAccessor::setVaules(itemObject, item->rawData);
-        IqOrmPrivate::IqOrmObjectPrivateAccessor::updateObjectSourceProperites(itemObject);
+        IqOrmObjectPrivateAccessor::setVaules(itemObject, item->rawData);
+        IqOrmObjectPrivateAccessor::updateObjectSourceProperites(itemObject);
 
         if (triggers) {
             IqOrmDataSourceOperationResult operationResult;
@@ -512,7 +515,7 @@ void IqOrmBaseModel::createItemObject(IqOrmBaseModel::IqOrmModelItem *item, qint
             bool result = triggers->postLoad(itemObject, transactionControll, operationResult, &error);
             if (!result)
                 qWarning("On create IqOrmModel<%s> item object post load triggers return error: \"%s\".",
-                         childsOrmMetaModel()->targetStaticMetaObject()->className(),
+                         IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(childsOrmMetaModel())->className(),
                          error.toLocal8Bit().constData());
 
             triggersOk = triggersOk && result;
@@ -645,12 +648,12 @@ QVariant IqOrmBaseModel::objectData(qint64 row, const QString &property) const
         else
             return item->rawData.objectId;
     } else {
-        const IqOrmPropertyDescription *propetyDescription = childsOrmMetaModel()->propertyDescription(property);
+        const IqOrmPropertyDescription *propetyDescription = IqOrmMetaModelPrivateAccessor::propertyDescription(childsOrmMetaModel(), property);
         Q_ASSERT_X(propetyDescription,
                    Q_FUNC_INFO,
-                   tr("Description for property \"%0\" not found in IqOrmMetaModel for class \"%1\".")
-                   .arg(property)
-                   .arg(childsOrmMetaModel()->targetStaticMetaObject()->className()).toLocal8Bit().constData());
+                   qPrintable(tr("Description for property \"%0\" not found in IqOrmMetaModel for class \"%1\".")
+                              .arg(property)
+                              .arg(IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(childsOrmMetaModel())->className())));
         if (item->object)
             return propetyDescription->value(item->object);
         else
@@ -699,10 +702,10 @@ Qt::ItemFlags IqOrmBaseModel::flags(const QModelIndex &index) const
     QString propertyName = m_visibleProperties[index.column()];
 
     Q_CHECK_PTR(childsOrmMetaModel());
-    Q_CHECK_PTR(childsOrmMetaModel()->targetStaticMetaObject());
+    Q_CHECK_PTR(IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(childsOrmMetaModel()));
 
-    int propertyIndex = childsOrmMetaModel()->targetStaticMetaObject()->indexOfProperty(propertyName.toLocal8Bit().constData());
-    QMetaProperty property = childsOrmMetaModel()->targetStaticMetaObject()->property(propertyIndex);
+    int propertyIndex = IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(childsOrmMetaModel())->indexOfProperty(propertyName.toLocal8Bit().constData());
+    QMetaProperty property = IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(childsOrmMetaModel())->property(propertyIndex);
 
     if (m_editableProperties.contains(propertyName)
             && property.isWritable())
@@ -717,7 +720,7 @@ QHash<int, QByteArray> IqOrmBaseModel::roleNames() const
 
     Q_CHECK_PTR(childsOrmMetaModel());
     int i = FIRST_QML_ROLE;
-    foreach (const IqOrmPropertyDescription *propertyDescription, childsOrmMetaModel()->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(childsOrmMetaModel())) {
         result[i] = propertyDescription->propertyName().toLocal8Bit().constData();
         ++i;
     }
@@ -851,7 +854,7 @@ bool IqOrmBaseModel::setData(const QModelIndex &index, const QVariant &value, in
         return false;
 
     Q_CHECK_PTR(childsOrmMetaModel());
-    const IqOrmPropertyDescription *propetyDescription = childsOrmMetaModel()->propertyDescription(propertyName);
+    const IqOrmPropertyDescription *propetyDescription = IqOrmMetaModelPrivateAccessor::propertyDescription(childsOrmMetaModel(), propertyName);
     Q_CHECK_PTR(propetyDescription);
 
     bool result = propetyDescription->setValue(object, value);

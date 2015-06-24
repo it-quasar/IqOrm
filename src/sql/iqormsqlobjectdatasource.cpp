@@ -34,8 +34,12 @@
 #include "iqormdatasourceoperationresult.h"
 #include "iqormobjectrawdata.h"
 
+#include "iqormmetamodelprivateaccessor.h"
+
 #include <QSqlQuery>
 #include <QDebug>
+
+using namespace IqOrmPrivate;
 
 IqOrmSqlObjectDataSource::IqOrmSqlObjectDataSource(IqOrmSqlDataSource *sqlDataSource) :
     IqOrmAbstractObjectDataSource(sqlDataSource),
@@ -54,7 +58,7 @@ bool IqOrmSqlObjectDataSource::loadObjectFromSqlQuery(IqOrmObject *object,
     if (!ok)
         return false;
 
-    IqOrmPrivate::IqOrmObjectPrivateAccessor::setVaules(object, rawData);
+    IqOrmObjectPrivateAccessor::setVaules(object, rawData);
     return true;
 }
 
@@ -71,7 +75,7 @@ IqOrmObjectRawData IqOrmSqlObjectDataSource::createRawDataForObjectFromSqlQuery(
     rawData.objectId = query.value(0).toInt();
 
     int i = 0;
-    foreach (const IqOrmPropertyDescription *propDescription, objectOrmMetaModel->propertyDescriptions()) {
+    foreach (const IqOrmPropertyDescription *propDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(objectOrmMetaModel)) {
         i++;
         Q_CHECK_PTR(propDescription);
 
@@ -152,15 +156,11 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::loadObjectById(IqOrmObj
     const IqOrmMetaModel *ormModel = object->ormMetaModel();
     Q_CHECK_PTR(ormModel);
 
-    if (!m_propertyDescriptionsProcessor->selectAllowed(object, &result)) {
-        resetObject(object);
+    if (!m_propertyDescriptionsProcessor->selectAllowed(object, &result))
         return result;
-    }
 
-    if (!m_propertyDescriptionsProcessor->preSelect(object, &result)) {
-        resetObject(object);
+    if (!m_propertyDescriptionsProcessor->preSelect(object, &result))
         return result;
-    }
 
     QString error;
     bool ok = false;
@@ -190,33 +190,27 @@ IqOrmDataSourceOperationResult IqOrmSqlObjectDataSource::loadObjectById(IqOrmObj
 
     QSqlQuery query = m_sqlDataSource->execQuery(queryStr, bindValues, true, &ok, &error);
     if (!ok) {
-        resetObject(object);
         result.setError(error);
         return result;
     }
 
     if (!query.isActive()) {
-        resetObject(object);
         result.setError(tr("SQL query not active."));
         return result;
     }
 
     //Получим первую запись
     if (!query.next()) {
-        resetObject(object);
         result.setError(tr("Not found object with objectId = %0.")
                         .arg(id));
         return result;
     }
 
-    if (!m_propertyDescriptionsProcessor->postSelect(object, &result)) {
-        resetObject(object);
+    if (!m_propertyDescriptionsProcessor->postSelect(object, &result))
         return result;
-    }
 
     //Загрузим данные в объект из первой записи
     if (!loadObjectFromSqlQuery(object, query, &error)) {
-        resetObject(object);
         result.setError(error);
         return result;
     }

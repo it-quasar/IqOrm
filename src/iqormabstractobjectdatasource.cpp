@@ -36,11 +36,6 @@ IqOrmAbstractObjectDataSource::~IqOrmAbstractObjectDataSource()
 {
 }
 
-void IqOrmAbstractObjectDataSource::resetObject(IqOrmObject *object)
-{
-    IqOrmPrivate::IqOrmObjectPrivateAccessor::resetObject(object);
-}
-
 //bool IqOrmAbstractObjectDataSource::loadObjectAllManyToManyReferences(IqOrmObject *object) const
 //{
 //    if (!object)

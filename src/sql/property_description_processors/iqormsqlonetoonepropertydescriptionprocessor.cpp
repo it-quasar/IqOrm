@@ -20,6 +20,9 @@
 #include "iqormsqlonetoonepropertydescriptionprocessor.h"
 #include "iqormonetoonepropertychanges.h"
 #include "iqorminversedonetoonepropertychanges.h"
+#include "iqormmetamodelprivateaccessor.h"
+
+using namespace IqOrmPrivate;
 
 IqOrmSqlOneToOnePropertyDescriptionProcessor::IqOrmSqlOneToOnePropertyDescriptionProcessor() :
     IqOrmSqlOneObjectDescrtibingPropertyDescriptionProcessor()
@@ -92,7 +95,7 @@ bool IqOrmSqlOneToOnePropertyDescriptionProcessor::insertAllowed(IqOrmDataSource
         if (brokenObjectId != -1) {
             //В таблице есть запись с данны ид, ошибка
             result->setError(QObject::tr("%0 with id %1 can not be NULL.")
-                                     .arg(object()->ormMetaModel()->targetStaticMetaObject()->className())
+                                     .arg(IqOrmMetaModelPrivateAccessor::targetStaticMetaObject(object()->ormMetaModel())->className())
                                      .arg(brokenObjectId)
                                      .arg(propertyDescription()->propertyName()));
             return false;
