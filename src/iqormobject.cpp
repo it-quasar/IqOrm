@@ -514,6 +514,83 @@ bool IqOrmObject::save(IqOrmTransactionControl transaction)
     return result;
 }
 
+/*!
+ * Сохраняет объект ORM в источник данных как новый в указанной транзакции \a transaction. Если в качестве транзакции
+ * передана пустая транзакция, то загрузка будет происходить в отдельной транзакции.
+ *
+ * При вызове данного метода, объект ORM будет всегда сохраняться в источник данных, как новый (в отличае от метода save()).
+ * Данный метод полезен для сохранения нескольких новых объектов ORM одного класса, а так же для создания копий объектов.
+ *
+ * Возвращает результат сохранения. Если произошла ошибка во время сохранения, то дополнительную информацию об ошибки можно
+ * получить из lastError.
+ */
+bool IqOrmObject::persist(IqOrmTransactionControl transaction)
+{
+    m_lastError->clearError();
+
+    IqOrmAbstractDataSource *ds = usedDataSource();
+    Q_CHECK_PTR (ds);
+
+    if (transaction.isValid()
+            && transaction.dataSource() != ds) {
+        m_lastError->setText(QObject::tr("The transaction is open for another data source."));
+        return false;
+    }
+
+    IqOrmTransactionControl transactionControl = transaction;
+    if (!transactionControl.isValid())
+        transactionControl = ds->transaction();
+
+    if (!ormMetaModel()) {
+        m_lastError->setText(QObject::tr("Not found valid object ORM model."));
+        return false;
+    }
+
+
+    IqOrmAbstractDataSource::Operation operation = IqOrmAbstractDataSource::Persist;
+
+    QSet<const IqOrmPropertyDescription *> propertiesToSave =ormMetaModel()->propertyDescriptions();
+
+    IqOrmDataSourceOperationPlan operationPlan;
+    operationPlan.setOperation(operation);
+    operationPlan.setObjectId(objectId());
+    operationPlan.setDataSource(ds);
+    operationPlan.setChangedProperites(propertiesToSave);
+
+    QString error;
+    if (triggers()
+            && !triggers()->preSave(this, transactionControl, operationPlan, &error)) {
+        m_lastError->setText(QObject::tr("Save aborted by preSave() trigger with error: \"%0\"")
+                             .arg(error));
+        return false;
+    }
+
+    IqOrmDataSourceOperationResult result;
+
+    //Создаем новый объект
+    result = ds->objectDataSource()->insertObject(this);
+
+    if (result)
+        updateSourcePropertyValues();
+
+    if (result) {
+        if (triggers()
+                && !triggers()->postSave(this, transactionControl, result, &error)) {
+            m_lastError->setText(QObject::tr("Save aborted by postSave() trigger with error: \"%0\"")
+                                 .arg(error));
+            return false;
+        }
+
+        if (!transaction.isValid())
+            transactionControl.commit();
+    } else {
+        m_lastError->setText(result.error());
+    }
+
+    return result;
+
+}
+
 void IqOrmObject::setObjectId(qint64 objectId)
 {
     if (m_objectId != objectId) {

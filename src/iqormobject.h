@@ -84,6 +84,8 @@ public: \
 \
     Q_INVOKABLE bool save(IqOrmTransactionControl transaction = IqOrmTransactionControl()) {return IqOrmObject::save(transaction);} \
 \
+    Q_INVOKABLE bool persist(IqOrmTransactionControl transaction = IqOrmTransactionControl()) {return IqOrmObject::persist(transaction);} \
+\
     Q_INVOKABLE bool remove(IqOrmTransactionControl transaction = IqOrmTransactionControl()) {return IqOrmObject::remove(transaction);} \
 \
     template<class T> \
@@ -157,6 +159,8 @@ public:
     bool reload(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
     bool save(IqOrmTransactionControl transaction = IqOrmTransactionControl());
+
+    bool persist(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
     bool remove(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
