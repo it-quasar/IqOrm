@@ -21,10 +21,11 @@
 #define IQORMMODELPRIVATEACCESSOR_H
 
 #include "iqormbasemodel.h"
+#include "iqorm_global.h"
 
 namespace IqOrmPrivate {
 
-class IqOrmModelPrivateAccessor
+class IQORMSHARED_EXPORT IqOrmModelPrivateAccessor
 {
 public:
     static void setObjectValues(IqOrmBaseModel *model, const QList<IqOrmObjectRawData> &objectValues);

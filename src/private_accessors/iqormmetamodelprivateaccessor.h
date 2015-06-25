@@ -2,10 +2,11 @@
 #define IQORMMETAMODELPRIVATEACCESSOR_H
 
 #include "iqormmetamodel.h"
+#include "iqorm_global.h"
 
 namespace IqOrmPrivate {
 
-class IqOrmMetaModelPrivateAccessor
+class IQORMSHARED_EXPORT IqOrmMetaModelPrivateAccessor
 {
 public:
     static const QMetaObject *targetStaticMetaObject(const IqOrmMetaModel *metaModel);

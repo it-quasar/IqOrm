@@ -21,6 +21,7 @@
 #define IQORMOBJECTPRIVATEACCESSOR_H
 
 #include <QVariant>
+#include "iqorm_global.h"
 
 class IqOrmObject;
 class IqOrmPropertyDescription;
@@ -29,7 +30,7 @@ class IqOrmAbstractTriggers;
 
 namespace IqOrmPrivate {
 
-class IqOrmObjectPrivateAccessor
+class IQORMSHARED_EXPORT IqOrmObjectPrivateAccessor
 {
 public:
     static void setObjectId(IqOrmObject *object, const int id);
