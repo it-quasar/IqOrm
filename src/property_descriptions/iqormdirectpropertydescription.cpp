@@ -33,7 +33,7 @@ IqOrmPropertyDescription::MappedType IqOrmDirectPropertyDescription::mappedType(
 
 IqOrmPropertyDescription::StoredValue IqOrmDirectPropertyDescription::storedValue() const
 {
-    return SimpeVariant;
+    return SimpleVariant;
 }
 
 QString IqOrmDirectPropertyDescription::columnName() const

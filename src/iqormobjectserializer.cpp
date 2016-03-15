@@ -56,7 +56,7 @@ QString IqOrmObjectSerializer::serialize(const IqOrmObject *object, const Format
         foreach (const IqOrmPropertyDescription * propertyDescription, IqOrmMetaModelPrivateAccessor::propertyDescriptions(objectModel)) {
             Q_CHECK_PTR(propertyDescription);
             switch (propertyDescription->storedValue()) {
-            case IqOrmPropertyDescription::SimpeVariant:
+            case IqOrmPropertyDescription::SimpleVariant:
                 propertiesObject.insert(propertyDescription->propertyName(), QJsonValue::fromVariant(propertyDescription->value(object)));
                 break;
             case IqOrmPropertyDescription::ObjectPointer: {
@@ -130,7 +130,7 @@ IqOrmObject* IqOrmObjectSerializer::deserialize(const QString &serializeData,
             const IqOrmPropertyDescription *propDescription = IqOrmMetaModelPrivateAccessor::propertyDescription(ormModel, propertyName);
             if (propDescription) {
                 switch (propDescription->storedValue()) {
-                case IqOrmPropertyDescription::SimpeVariant:
+                case IqOrmPropertyDescription::SimpleVariant:
                     propDescription->setValue(object, propertiesObject.value(propertyName));
                     break;
                 case IqOrmPropertyDescription::ObjectPointer: {

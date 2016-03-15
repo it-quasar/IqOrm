@@ -405,6 +405,8 @@ IqOrmAbstractDataSource *IqOrmObject::usedDataSource() const
  *
  * \snippet IqOrmObject/use_example.cpp update
  *
+ * Данный метод не сохраняет изменения в объектах связанных с данным. Эти изменения необходимо сохранять вручную.
+ *
  * Возвращает результат сохранения. Если произошла ошибка во время сохранения, то дополнительную информацию об ошибки можно
  * получить из lastError.
  */
@@ -691,7 +693,7 @@ void IqOrmObject::updateSourcePropertyValues()
     foreach (const IqOrmPropertyDescription *propDescription, ormMetaModel()->propertyDescriptions()) {
         Q_CHECK_PTR(propDescription);
         switch (propDescription->storedValue()) {
-        case IqOrmPropertyDescription::SimpeVariant:
+        case IqOrmPropertyDescription::SimpleVariant:
             m_sourcePropertyValues[propDescription] = propDescription->value(this);
             break;
         case IqOrmPropertyDescription::ObjectPointer: {
@@ -723,7 +725,7 @@ QSet<const IqOrmPropertyDescription *> IqOrmObject::sourcePropertyChanges() cons
     foreach (const IqOrmPropertyDescription *propDescription, ormMetaModel()->propertyDescriptions()) {
         Q_CHECK_PTR(propDescription);
         switch (propDescription->storedValue()) {
-        case IqOrmPropertyDescription::SimpeVariant:
+        case IqOrmPropertyDescription::SimpleVariant:
             if (m_sourcePropertyValues[propDescription] != propDescription->value(this))
                 result << propDescription;
             break;
@@ -804,7 +806,7 @@ void IqOrmObject::setValues(const IqOrmObjectRawData &rawData)
 
         //Устанавливаем значение
         switch (propDescription->storedValue()) {
-        case IqOrmPropertyDescription::Direct: {
+        case IqOrmPropertyDescription::SimpleVariant: {
             propDescription->setValue(this, rawData.values[propDescription]);
             break;
         }

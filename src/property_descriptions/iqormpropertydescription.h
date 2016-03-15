@@ -47,7 +47,7 @@ public:
 
     enum StoredValue
     {
-        SimpeVariant,
+        SimpleVariant,
         ObjectPointer,
         ObjectPointerList
     };

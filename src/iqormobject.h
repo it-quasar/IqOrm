@@ -64,7 +64,7 @@ public: \
     { \
         Q_ASSERT_X(iqOrmClassRegistred(), \
             Q_FUNC_INFO, \
-            tr("IqOrmObject not registerd. Check IQORM_REGISTER_CLASS macros for class %0.") \
+            tr("IqOrmObject not register. Check IQORM_REGISTER_CLASS macros for class %0.") \
                .arg(staticMetaObject.className()).toLocal8Bit().constData()); \
         static IqOrmMetaModel* const m_staticOrmMetaModel(new IqOrmMetaModel()); \
         return m_staticOrmMetaModel; \
