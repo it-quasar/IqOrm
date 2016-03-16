@@ -9,7 +9,7 @@ else ()
     set (TARGET ${PROJECT})
 endif ()
 
-#option (IqOrm_DEBUG_MODE_ENABLED "Enable IrOrm debug mode" OFF)
+#option (IqOrm_DEBUG_MODE_ENABLED "Enable IqOrm debug mode" OFF)
 
 set (IqOrm_FOUND ON CACHE BOOL "True if headers and requested libraries were found")
 set (IqOrm_VERSION ${VERSION} CACHE STRING "IqOrm version")
