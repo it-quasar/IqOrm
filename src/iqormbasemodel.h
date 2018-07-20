@@ -85,6 +85,8 @@ public:
     void setPropertyHeader(const QString &property,
                            const QString &headerTitle);
 
+    bool findAll(IqOrmTransactionControl transaction = IqOrmTransactionControl());
+
     bool find(const QString &propertyName,
               IqOrmFilter::Condition operation,
               const QVariant &value,

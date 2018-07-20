@@ -88,7 +88,8 @@ IqOrmMetaModel::IqOrmMetaModel(QObject *parent) :
     m_tableName(""),
     m_targetStaticMetaObject(Q_NULLPTR),
     m_triggers(Q_NULLPTR),
-    m_validationObject(Q_NULLPTR)
+    m_validationObject(Q_NULLPTR),
+    m_ready(false)
 {
 }
 
@@ -118,6 +119,16 @@ bool IqOrmMetaModel::checkPropertyDescriptionIsValid(const IqOrmPropertyDescript
 
     int propertyIntex = lastObject->metaObject()->indexOfProperty(lastPropName.toLocal8Bit().constData());
     return propertyIntex != -1;
+}
+
+bool IqOrmMetaModel::isReady() const
+{
+    return m_ready;
+}
+
+void IqOrmMetaModel::setReady(bool ready)
+{
+    m_ready = ready;
 }
 
 /*!
@@ -344,6 +355,18 @@ const IqOrmPropertyDescription *IqOrmMetaModel::propertyDescription(const QStrin
         if (description->propertyName() == propertyName)
             return description;
     }
+
+    return NULL;
+}
+
+const IqOrmPropertyDescription *IqOrmMetaModel::propertyDescriptionOnNotifySignal(int propertyNotifySignalIndex) const
+{
+        foreach (const IqOrmPropertyDescription *description, m_propertyDescriptions)
+        {
+            Q_CHECK_PTR (description);
+            if (description->targetStaticMetaPropery().notifySignalIndex() == propertyNotifySignalIndex)
+                return description;
+        }
 
     return NULL;
 }

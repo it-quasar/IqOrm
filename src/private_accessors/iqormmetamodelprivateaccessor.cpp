@@ -32,4 +32,23 @@ bool IqOrmMetaModelPrivateAccessor::isValid(const IqOrmMetaModel *metaModel)
     return metaModel->isValid();
 }
 
+const IqOrmPropertyDescription *IqOrmMetaModelPrivateAccessor::propertyDescriptionOnNotifySignal(const IqOrmMetaModel *metaModel,
+                                                                                                 int propertyNotifySignalIndex)
+{
+    Q_CHECK_PTR(metaModel);
+    return metaModel->propertyDescriptionOnNotifySignal(propertyNotifySignalIndex);
+}
+
+}
+
+bool IqOrmMetaModelPrivateAccessor::isReady(const IqOrmMetaModel *metaModel)
+{
+    Q_CHECK_PTR(metaModel);
+    return metaModel->isReady();
+}
+
+void IqOrmMetaModelPrivateAccessor::setReady(IqOrmMetaModel *metaModel, bool ready)
+{
+    Q_CHECK_PTR(metaModel);
+    metaModel->setReady(ready);
 }

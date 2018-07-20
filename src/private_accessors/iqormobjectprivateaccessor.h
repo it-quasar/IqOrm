@@ -51,6 +51,12 @@ public:
     static bool isObjectSavedToDataSource(const IqOrmObject *object);
 
     static IqOrmAbstractTriggers *triggers(const IqOrmObject *object);
+
+    enum class Extensions {
+        Null
+    };
+
+    static bool isObjectIqOrmExtensionEnabled(const IqOrmObject *object, Extensions extension);
 };
 
 }

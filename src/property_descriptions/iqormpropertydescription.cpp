@@ -117,11 +117,23 @@ QVariant IqOrmPropertyDescription::value(const IqOrmObject *object) const
     const QObject *qobject = dynamic_cast<const QObject*>(object);
     Q_CHECK_PTR(qobject);
 
-    if (m_propertyPath.count() == 1)
+    if (m_propertyPath.count() == 1) {
+        if (IqOrmObjectPrivateAccessor::isObjectIqOrmExtensionEnabled(object, IqOrmObjectPrivateAccessor::Extensions::Null)
+                && object->isPropertyNull(propertyName()))
+            return QVariant(targetStaticMetaPropery().type());
+
         return m_targetStaticMetaProperty.read(qobject);
+    }
 
     const QObject *lastPropObj = lastPropertyObject(qobject);
     Q_CHECK_PTR (lastPropObj);
+
+    const IqOrmObject *lastPropIqOrmObj = dynamic_cast<const IqOrmObject *>(lastPropObj);
+
+    if (IqOrmObjectPrivateAccessor::isObjectIqOrmExtensionEnabled(lastPropIqOrmObj, IqOrmObjectPrivateAccessor::Extensions::Null)
+            && lastPropIqOrmObj->isPropertyNull(propertyName()))
+        return QVariant(targetStaticMetaPropery().type());
+
     return lastPropObj->property(m_lastPropertyName.toLocal8Bit().constData());
 }
 
@@ -131,10 +143,26 @@ bool IqOrmPropertyDescription::setValue(IqOrmObject *object, const QVariant &val
     QObject *qobject = dynamic_cast<QObject*>(object);
     Q_CHECK_PTR(qobject);
 
-    if (m_propertyPath.count() == 1)
+    if (m_propertyPath.count() == 1) {
+        if (IqOrmObjectPrivateAccessor::isObjectIqOrmExtensionEnabled(object, IqOrmObjectPrivateAccessor::Extensions::Null)
+                && value.isNull()) {
+            object->setPropertyNull(propertyName());
+            return true;
+        }
+
         return m_targetStaticMetaProperty.write(qobject, value);
+    }
 
     QObject *lastPropObj = lastPropertyObject(qobject);
     Q_CHECK_PTR (lastPropObj);
+
+    IqOrmObject *lastPropIqOrmObj = dynamic_cast<IqOrmObject *>(lastPropObj);
+
+    if (IqOrmObjectPrivateAccessor::isObjectIqOrmExtensionEnabled(lastPropIqOrmObj, IqOrmObjectPrivateAccessor::Extensions::Null)
+        && value.isNull()) {
+        lastPropIqOrmObj->setPropertyNull(propertyName());
+        return true;
+    }
+
     return lastPropObj->setProperty(m_lastPropertyName.toLocal8Bit().constData(), value);
 }

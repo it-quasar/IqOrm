@@ -133,6 +133,12 @@ QObject *IqOrmBaseModel::last()
     return get(rowCount() - 1);
 }
 
+bool IqOrmBaseModel::findAll(IqOrmTransactionControl transaction)
+{
+    setFilters(Q_NULLPTR);
+    return load(transaction);
+}
+
 bool IqOrmBaseModel::find(const QString &propertyName, IqOrmFilter::Condition operation, const QVariant &value, IqOrmTransactionControl transaction)
 {
     return find(propertyName, operation, value, Qt::CaseSensitive, transaction);

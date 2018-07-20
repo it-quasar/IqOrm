@@ -154,8 +154,9 @@ IqOrmObject::IqOrmObject():
     m_objectId(-1),
     m_dataSource(Q_NULLPTR),
     m_lastError(new IqOrmError(dynamic_cast<QObject *>(this))),
-    m_isLoadedFromDataSource(false)
-{    
+    m_isLoadedFromDataSource(false),
+    m_nullExtensionEnabled(false)
+{
 }
 
 IqOrmObject::~IqOrmObject()
@@ -388,6 +389,128 @@ IqOrmAbstractDataSource *IqOrmObject::usedDataSource() const
     Q_CHECK_PTR(coreDataSource->objectDataSource());
 
     return coreDataSource;
+}
+
+/*!
+ * \enum IqOrmObject::Extensions
+ *
+ * Расширения IqOrm. Расширения не обязательны к использованию, позволяют увеличить и расширить функционал объектов IqOrmObject,
+ * связей объектов IqOrmObject и действий с объектами IqOrmObject.
+ *
+ * \value Null Расширение Null
+ *
+ */
+
+/*!
+ * Включает расширение \a extension IqOrm, если \a enable равно \c true. По-умолчанию, \a enable равно \c true.
+ *
+ * Данный метод необходимо вызывать в конструкторе дочернего класса.
+ *
+ * \chapter Расширение Null
+ *
+ * Включает возможность указывать для любых свойств значение NULL.
+ *
+ * Стандартные типы C++ не позволяют хранить специальное значение NULL. IqOrm позволяет обойти это ограничение включив данное расширение.
+ * После включения этого расширения, при загрузке объекта из источника данных, можно будет узнать установлено ли свойство в NULL при
+ * помощи метода isPropertyNull(). А так же установить определенное свойство в NULL, при помощи метода setPropertyNull().
+ *
+ * \code
+ *    Person::Person(QObject *parent) :
+ *        QObject(parent),
+ *        IqOrmObject()
+ *    {
+ *        iqOrmExtensionEnable(Extensions::Null);
+ *    }
+ * \endcode
+ *
+ * По-умолчанию, при создании объекта, все его свойства будут равны NULL. IqOrm автоматически следит за изменениями свойства
+ * объекта, и если какое-то свойство будет изменено, то NULL для него станет \c false.
+ *
+ * \code
+ *     Person *alex = new Person();
+ *     qDebug() << alex->isPropertyNull("age"); //true
+ *     alex->setAge(20);
+ *     qDebug() << alex->isPropertyNull("age"); //false
+ *     alex->setPropertyNull("age");
+ *     qDebug() << alex->isPropertyNull("age"); //true
+ *     alex->setAge(20);
+ *     qDebug() << alex->isPropertyNull("age"); //false
+ * \endcode
+ *
+ */
+void IqOrmObject::iqOrmExtensionEnable(Extensions extension, bool enable)
+{
+    switch (extension) {
+        case Extensions::Null: {
+            if (ormMetaModel() && IqOrmMetaModelPrivateAccessor::isReady(ormMetaModel())) {
+                const QMetaObject *metaObject = ormMetaModel()->targetStaticMetaObject();
+                if (metaObject) {
+                    m_nullExtensionEnabled = enable;
+
+                    QObject *qObject = dynamic_cast<QObject *>(this);
+
+                    int onPropertyChangedPrivateMethodIndex = metaObject->indexOfMethod(metaObject->normalizedSignature("onPropertyChangedPrivate()"));
+                    QMetaMethod onPropertyChangedPrivateMethod = metaObject->method(onPropertyChangedPrivateMethodIndex);
+
+                    for (const IqOrmPropertyDescription *propertyDescription : ormMetaModel()->propertyDescriptions()) {
+                        QMetaProperty prop = propertyDescription->targetStaticMetaPropery();
+                        if (prop.hasNotifySignal()) {
+                            if (enable) {
+                                qObject->connect(qObject, prop.notifySignal(), qObject, onPropertyChangedPrivateMethod);
+                                setPropertyNull(prop.name());
+                            } else {
+                                qObject->disconnect(qObject, prop.notifySignal(), qObject, onPropertyChangedPrivateMethod);
+                                setPropertyNull(prop.name(), false);
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    }
+}
+
+
+/*!
+ * Устанавливает свойству \a property значение NULL равное \a isNull.
+ *
+ * Если не передан \a isNull, то значение NULL для свойства \a property будет установлено в \c true. Данный метод не менят
+ * самого значения свойства \a property, а только помечает для IqOrm, что оно равняется NULL.
+ *
+ * \sa iqOrmExtensionEnable()
+ */
+void IqOrmObject::setPropertyNull(const QString &property, bool isNull)
+{
+    Q_ASSERT_X(!isNull || isIqOrmExtensionEnabled(Extensions::Null), Q_FUNC_INFO, QObject::tr("IqOrm NULL Extension disabled. Use iqOrmExtensionEnable(Extensions::Null) in constructor of %0")
+        .arg(ormMetaModel()->targetStaticMetaObject()->className()).toLocal8Bit().constData());
+
+    const IqOrmPropertyDescription *propertyDescription = IqOrmMetaModelPrivateAccessor::propertyDescription(ormMetaModel(), property);
+    Q_CHECK_PTR(propertyDescription);
+
+    if (propertyDescription->mappedType() != IqOrmPropertyDescription::Direct)
+        return;
+
+    if (isNull)
+        m_nullProperties.insert(propertyDescription);
+    else
+        m_nullProperties.remove(propertyDescription);
+}
+
+/*!
+ * Возвращает для свойства \a property признак того, что оно установленно в NULL.
+ *
+ * \sa iqOrmExtensionEnable(), setPropertyNull()
+ */
+bool IqOrmObject::isPropertyNull(const QString &property) const
+{
+    Q_ASSERT_X(isIqOrmExtensionEnabled(Extensions::Null), Q_FUNC_INFO, QObject::tr("IqOrm NULL Extension disabled. Use iqOrmExtensionEnable(Extensions::Null) in constructor of %0")
+        .arg(ormMetaModel()->targetStaticMetaObject()->className()).toLocal8Bit().constData());
+
+    const IqOrmPropertyDescription *propertyDescription = IqOrmMetaModelPrivateAccessor::propertyDescription(ormMetaModel(), property);
+    Q_CHECK_PTR(propertyDescription);
+
+    return m_nullProperties.contains(propertyDescription);
 }
 
 /*!
@@ -725,10 +848,16 @@ QSet<const IqOrmPropertyDescription *> IqOrmObject::sourcePropertyChanges() cons
     foreach (const IqOrmPropertyDescription *propDescription, ormMetaModel()->propertyDescriptions()) {
         Q_CHECK_PTR(propDescription);
         switch (propDescription->storedValue()) {
-        case IqOrmPropertyDescription::SimpleVariant:
-            if (m_sourcePropertyValues[propDescription] != propDescription->value(this))
+        case IqOrmPropertyDescription::SimpleVariant: {
+            QVariant sourcePropertyValue = m_sourcePropertyValues[propDescription];
+
+            if (isIqOrmExtensionEnabled(Extensions::Null)
+                && sourcePropertyValue.isNull() != isPropertyNull(propDescription->propertyName()))
+                result << propDescription;
+            else if (sourcePropertyValue != propDescription->value(this))
                 result << propDescription;
             break;
+        }
         case IqOrmPropertyDescription::ObjectPointer: {
             const IqOrmOneObjectDescribingPropertyDescription *oneObjectDescribingPropertyDescription
                     = dynamic_cast<const IqOrmOneObjectDescribingPropertyDescription *>(propDescription);
@@ -807,7 +936,9 @@ void IqOrmObject::setValues(const IqOrmObjectRawData &rawData)
         //Устанавливаем значение
         switch (propDescription->storedValue()) {
         case IqOrmPropertyDescription::SimpleVariant: {
-            propDescription->setValue(this, rawData.values[propDescription]);
+            QVariant value = rawData.values[propDescription];
+
+            propDescription->setValue(this, value);
             break;
         }
         case IqOrmPropertyDescription::ObjectPointer: {
@@ -833,3 +964,25 @@ void IqOrmObject::setValues(const IqOrmObjectRawData &rawData)
 
     setObjectId(rawData.objectId);
 }
+
+void IqOrmObject::onPropertyChanged(const IqOrmPropertyDescription *propertyDescription)
+{
+    m_nullProperties.remove(propertyDescription);
+}
+
+/*!
+ * Возвращает признак того, что расширение \a extension IqOrm активно.
+ *
+ * \sa iqOrmExtensionEnable()
+ */
+bool IqOrmObject::isIqOrmExtensionEnabled(Extensions extension) const
+{
+    switch (extension) {
+        case Extensions::Null:
+            return m_nullExtensionEnabled;
+    }
+
+    return false;
+}
+
+

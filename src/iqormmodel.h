@@ -51,7 +51,9 @@ public:
     static bool truncate(IqOrmTransactionControl transaction,
                          QString *error = Q_NULLPTR);
 
-    QList<T *> toList() const;
+    QList<T *> takeAll();
+
+    QList<T *> toList();
 
 protected:
     virtual IqOrmObject * createChildObject() const Q_DECL_OVERRIDE;

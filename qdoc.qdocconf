@@ -6,6 +6,9 @@ include($QT_INSTALL_DOCS/global/qt-module-defaults-online.qdocconf)
 #include($QT_INSTALL_DOCS/global/fileextensions.qdocconf) #configuration common among QDoc projects
 #include($QT_INSTALL_DOCS/global/qt-html-templates-online.qdocconf) #offline HTML template for documentation shipped to Qt Creator
 
+HTML.headerstyles += \
+	"    <link href=\"https://fonts.googleapis.com/css?family=Droid+Sans+Mono|Open+Sans:400,300\" rel=\"stylesheet\" type=\"text/css\" />\n"
+
 project = IqOrm Libraty
 description = Sample QDoc project
 

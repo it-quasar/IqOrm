@@ -110,7 +110,15 @@ private: \
         if (registred) \
             m_registred = true; \
         return m_registred; \
-    }
+    }\
+\
+    Q_INVOKABLE void onPropertyChangedPrivate()\
+    {\
+        int signalIndex = senderSignalIndex();\
+        const IqOrmPropertyDescription *propDescription = IqOrmMetaModelPrivateAccessor::propertyDescriptionOnNotifySignal(ormMetaModel(), signalIndex);\
+        if (propDescription)\
+            IqOrmObject::onPropertyChanged(propDescription);\
+    }\
 
 
 
@@ -144,6 +152,10 @@ public:
 public:
     explicit IqOrmObject();
 
+    enum class Extensions {
+        Null
+    };
+
 #ifndef Q_QDOC
     virtual ~IqOrmObject();
 #endif
@@ -164,9 +176,14 @@ public:
 
     bool remove(IqOrmTransactionControl transaction = IqOrmTransactionControl());
 
+    void setPropertyNull(const QString &property, bool isNull = true);
+
+    bool isPropertyNull(const QString &property) const;
+
 protected:
     virtual IqOrmAbstractTriggers *triggers() const;
 
+    void iqOrmExtensionEnable(Extensions extension, bool enable = true);
 public:
     qint64 objectId() const;
 
@@ -182,6 +199,8 @@ protected:
     virtual void emitObjectIdChanged() = 0;
     virtual void emitIsPersistedChanged() = 0;
     virtual void emitDataSourceChanged() = 0;
+
+    void onPropertyChanged(const IqOrmPropertyDescription *propertyDescription);
 #endif
 
 private:
@@ -207,12 +226,16 @@ private:
 
     void setValues(const IqOrmObjectRawData &values);
 
+    bool isIqOrmExtensionEnabled(Extensions extension) const;
+
 private:
     qint64 m_objectId;
     IqOrmAbstractDataSource* m_dataSource;
     IqOrmError *m_lastError;
     QHash<const IqOrmPropertyDescription *, QVariant> m_sourcePropertyValues;
+    QSet<const IqOrmPropertyDescription *> m_nullProperties;
     bool m_isLoadedFromDataSource;
+    bool m_nullExtensionEnabled;
 };
 
 #endif // IqOrmObject_H

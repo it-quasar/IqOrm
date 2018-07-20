@@ -111,7 +111,18 @@ bool IqOrmModel<T>::truncate(IqOrmTransactionControl transaction, QString *error
 }
 
 template <class T>
-QList<T *> IqOrmModel<T>::toList() const
+QList<T *> IqOrmModel<T>::takeAll()
+{
+    QList<T *> result;
+    for (int i = 0; i < rowCount(); ++i) {
+        result << take(i);
+    }
+
+    return result;
+}
+
+template <class T>
+QList<T *> IqOrmModel<T>::toList()
 {
     QList<T *> result;
     for (int i = 0; i < rowCount(); ++i) {

@@ -72,4 +72,13 @@ IqOrmAbstractTriggers *IqOrmObjectPrivateAccessor::triggers(const IqOrmObject *o
     return object->triggers();
 }
 
+bool IqOrmObjectPrivateAccessor::isObjectIqOrmExtensionEnabled(const IqOrmObject *object, Extensions extension)
+{
+    switch (extension) {
+        case Extensions::Null : return object->isIqOrmExtensionEnabled(IqOrmObject::Extensions::Null);
+    }
+
+    return false;
+}
+
 }

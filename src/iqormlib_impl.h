@@ -46,6 +46,8 @@ void IqOrmLib::ormModelIninitializator()
                Q_FUNC_INFO,
                qPrintable(QObject::tr("IqOrmModel for class %0 not valid.")
                           .arg(T::staticMetaObject.className())));
+
+    IqOrmMetaModelPrivateAccessor::setReady(metaModel, true);
 }
 
 template <class T>

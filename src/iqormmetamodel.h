@@ -105,8 +105,12 @@ private:
     QSet<const IqOrmPropertyDescription *> propertyDescriptions() const;
 
     const IqOrmPropertyDescription * propertyDescription(const QString &propertyName) const;
+    const IqOrmPropertyDescription * propertyDescriptionOnNotifySignal(int propertyNotifySignalIndex) const;
 
     bool isValid() const;
+
+    bool isReady() const;
+    void setReady(bool ready);
 
     bool addPropertyOrmDescription(IqOrmPropertyDescription *description);
     bool checkPropertyDescriptionIsValid(const IqOrmPropertyDescription *propertyDescription) const;
@@ -124,6 +128,8 @@ private:
 
     //Объект для валидации модели
     const QObject *m_validationObject;
+
+    bool m_ready;
 };
 
 #include "iqormmetamodel_impl.h"

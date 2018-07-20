@@ -18,7 +18,13 @@ public:
     static const IqOrmPropertyDescription *propertyDescription(const IqOrmMetaModel *metaModel,
                                                                const QString &propertyName);
 
+    static const IqOrmPropertyDescription *propertyDescriptionOnNotifySignal(const IqOrmMetaModel *metaModel,
+                                                                             int propertyNotifySignalIndex);
+
     static bool isValid(const IqOrmMetaModel *metaModel);
+
+    static bool isReady(const IqOrmMetaModel *metaModel);
+    static void setReady(IqOrmMetaModel *metaModel, bool ready = true);
 };
 
 }
